@@ -13,7 +13,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   return (
     <AppShell>
       <div className="space-y-6">
-        <ProfilePanel user={user} />
+        <ProfilePanel user={user} showEdit={user.id === 'u_001'} />
         <section className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-4">
             <h2 className="text-xl font-black">最近帖子</h2>

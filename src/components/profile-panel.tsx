@@ -1,32 +1,59 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { User } from "@/types";
+import Link from "next/link";
 import { Avatar, Card, Tag } from "./ui";
 
-export function ProfilePanel({ user }: { user: User }) {
+export function ProfilePanel({ user, showEdit }: { user: User; showEdit?: boolean }) {
+  const [displayUser, setDisplayUser] = useState<User>(user);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("editedUsers");
+      if (!raw) return;
+      const map = JSON.parse(raw || "{}");
+      const edited = map[user.id];
+      if (edited) setDisplayUser({ ...user, ...edited });
+    } catch (e) {
+      // ignore
+    }
+  }, [user]);
+
   return (
     <Card className="overflow-hidden">
       <div className="h-28 bg-[linear-gradient(135deg,#6E1F28,#8B2E3A_52%,#1A1A1A)]" />
       <div className="p-5">
-        <Avatar label={user.avatar} className="-mt-12 size-20 border-4 border-white text-2xl" />
+        <Avatar label={displayUser.avatar} className="-mt-12 size-20 border-4 border-white text-2xl" />
         <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-black">{user.name}</h1>
-            <p className="mt-1 text-sm text-neutral-500">{user.college} · {user.grade} · {user.direction}</p>
+            <h1 className="text-2xl font-black">{displayUser.name}</h1>
+            <p className="mt-1 text-sm text-neutral-500">{displayUser.college} · {displayUser.grade} · {displayUser.direction}</p>
           </div>
-          <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-bold text-brand-700">{user.status}</span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-bold text-brand-700">{displayUser.status}</span>
+            {showEdit && (
+              <Link
+                href={`/profile/${displayUser.id}/edit`}
+                className="rounded-md bg-black px-3 py-1 text-sm font-semibold text-white"
+              >
+                编辑资料
+              </Link>
+            )}
+          </div>
         </div>
-        <p className="mt-4 max-w-3xl text-sm leading-6 text-neutral-700">{user.bio}</p>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-neutral-700">{displayUser.bio}</p>
         <div className="mt-3 rounded-lg bg-paper px-3 py-2 text-sm font-semibold text-neutral-600">
-          联系方式：{user.contact}
+          联系方式：{displayUser.contact}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          {user.skills.map((skill) => (
+          {displayUser.skills.map((skill) => (
             <Tag key={skill}>{skill}</Tag>
           ))}
         </div>
-        <div className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-4">
-          <Stat label="帖子" value={user.stats.posts} />
-          <Stat label="项目" value={user.stats.projects} />
-          <Stat label="声望" value={user.stats.reputation} />
+        <div className="mt-5 grid grid-cols-2 gap-3 border-t border-line pt-4">
+          <Stat label="帖子" value={displayUser.stats.posts} />
+          <Stat label="项目" value={displayUser.stats.projects} />
         </div>
       </div>
     </Card>
