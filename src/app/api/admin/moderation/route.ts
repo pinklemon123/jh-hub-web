@@ -12,7 +12,8 @@ function defaultStatus(decision: ModerationDecision): ContentModerationStatus {
 
 function resolvedStatus(rowStatus: string, moderation: ModerationResult): ContentModerationStatus {
   if (rowStatus === "approved" || rowStatus === "rejected" || rowStatus === "blocked") return rowStatus;
-  return defaultStatus(moderation.decision);
+  if (moderation.decision === "block") return "blocked";
+  return "pending";
 }
 
 export async function GET() {
@@ -30,7 +31,7 @@ export async function GET() {
   const postItems = await Promise.all(posts.map(async (post) => {
     const moderation = moderateContent(`${post.title} ${post.summary} ${post.content}`);
     const moderationStatus = resolvedStatus(post.moderationStatus, moderation);
-    if (post.moderationStatus === "pending" && moderationStatus !== "pending") {
+    if (post.moderationStatus === "pending" && moderationStatus === "blocked") {
       await prisma.communityPost.update({
         where: { id: post.id },
         data: { moderationStatus, reviewedAt: new Date(), reviewNote: moderation.message }
@@ -55,7 +56,7 @@ export async function GET() {
   const commentItems = await Promise.all(comments.map(async (comment) => {
     const moderation = moderateContent(comment.content);
     const moderationStatus = resolvedStatus(comment.moderationStatus, moderation);
-    if (comment.moderationStatus === "pending" && moderationStatus !== "pending") {
+    if (comment.moderationStatus === "pending" && moderationStatus === "blocked") {
       await prisma.postComment.update({
         where: { id: comment.id },
         data: { moderationStatus, reviewedAt: new Date(), reviewNote: moderation.message }
@@ -80,7 +81,7 @@ export async function GET() {
   const messageItems = await Promise.all(messages.map(async (message) => {
     const moderation = moderateContent(message.content);
     const moderationStatus = resolvedStatus(message.moderationStatus, moderation);
-    if (message.moderationStatus === "pending" && moderationStatus !== "pending") {
+    if (message.moderationStatus === "pending" && moderationStatus === "blocked") {
       await prisma.directMessage.update({
         where: { id: message.id },
         data: { moderationStatus, reviewedAt: new Date(), reviewNote: moderation.message }

@@ -46,7 +46,10 @@ export function NewPostForm() {
       setMessage(data.message ?? data.moderation?.message ?? "发布失败，请检查内容或数据库连接。");
       return;
     }
-    if (data.item?.id) router.push(`/posts/${data.item.id}`);
+    if (data.item?.id) {
+      setMessage("已提交审核，管理员通过后会在内容流展示。");
+      router.push("/admin/content");
+    }
   }
 
   return (

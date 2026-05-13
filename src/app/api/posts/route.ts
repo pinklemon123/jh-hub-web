@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         requiredSkills: Array.isArray(body.requiredSkills) ? body.requiredSkills.map(String) : [],
         openSlots: Number(body.openSlots ?? 0),
         status: String(body.status ?? "已发布"),
-        moderationStatus: moderation.decision === "block" ? "blocked" : moderation.decision === "allow" ? "approved" : "pending",
+        moderationStatus: moderation.decision === "block" ? "blocked" : "pending",
         reviewNote: moderation.message,
         heat: 0,
         images: {
