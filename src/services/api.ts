@@ -34,6 +34,14 @@ export const api = {
   async getTeams() {
     return getJson(endpoints.teams, teams);
   },
+  async getRecommendations(userId = "u_001") {
+    return getJson(`${endpoints.recommendations}?userId=${encodeURIComponent(userId)}`, {
+      strategy: "rule_based_skill_matching",
+      teamMatches: [],
+      teammateMatches: [],
+      techPosts: []
+    });
+  },
   async getNotifications() {
     await delay();
     return notifications;
@@ -76,6 +84,7 @@ export const endpoints = {
   notifications: "/api/notifications",
   conversations: "/api/conversations",
   teams: "/api/teams",
+  recommendations: "/api/recommendations",
   adminOverview: "/api/admin/overview",
   adminQueue: "/api/admin/moderation",
   adminReports: "/api/admin/reports",

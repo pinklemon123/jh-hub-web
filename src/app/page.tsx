@@ -2,6 +2,8 @@ import { AppShell } from "@/components/app-shell";
 import { HomeFeed } from "@/components/home-feed";
 import { RightRail } from "@/components/right-rail";
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
     <AppShell>

@@ -1,7 +1,43 @@
-import { announcements, hotTags, teams, users } from "@/data/mock";
+import { announcements as mockAnnouncements, hotTags as mockHotTags, teams as mockTeams, users as mockUsers } from "@/data/mock";
+import { ensureCommunitySeed, toTeamProject, toUser } from "@/lib/community-db";
+import { prisma } from "@/lib/prisma";
 import { Avatar, Card, Tag } from "./ui";
 
-export function RightRail() {
+async function getRailData() {
+  try {
+    await ensureCommunitySeed();
+    const [userRows, teamRows, postRows, announcementRows] = await Promise.all([
+      prisma.hubUser.findMany({ orderBy: { createdAt: "asc" } }),
+      prisma.teamProject.findMany({ orderBy: { updatedAt: "desc" }, take: 4 }),
+      prisma.communityPost.findMany({
+        where: { moderationStatus: "approved" },
+        select: { tags: true },
+        orderBy: { createdAt: "desc" },
+        take: 20
+      }),
+      prisma.announcement.findMany({
+        where: { status: "published" },
+        orderBy: { createdAt: "desc" },
+        take: 4
+      })
+    ]);
+    const users = userRows.map(toUser);
+    const teams = teamRows.map(toTeamProject);
+    const hotTags = [...new Set([...postRows.flatMap((post) => post.tags), ...teams.flatMap((team) => team.tags)])].slice(0, 8);
+    return {
+      users,
+      teams,
+      hotTags: hotTags.length ? hotTags : mockHotTags,
+      announcements: announcementRows.map((item) => item.title)
+    };
+  } catch {
+    console.warn("[right-rail] database unavailable, rendering mock sidebar");
+    return { users: mockUsers, teams: mockTeams, hotTags: mockHotTags, announcements: mockAnnouncements };
+  }
+}
+
+export async function RightRail() {
+  const { users, teams, hotTags, announcements } = await getRailData();
   const visibleUsers = users.filter((user) => user.id !== "system");
 
   return (
@@ -37,14 +73,17 @@ export function RightRail() {
       <Card className="p-4">
         <h2 className="mb-3 text-sm font-black">最近组队</h2>
         <div className="space-y-3">
-          {teams.map((team) => (
-            <div key={team.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
-              <div className="text-sm font-bold">{team.title}</div>
-              <div className="mt-1 text-xs text-neutral-500">
-                缺 {team.missingRoles.join(" / ")} · {team.currentCount}/{team.maxCount}
+          {teams.map((team) => {
+            const missingSkills = team.missingSkills?.length ? team.missingSkills : team.missingRoles;
+            return (
+              <div key={team.id} className="border-b border-line pb-3 last:border-0 last:pb-0">
+                <div className="text-sm font-bold">{team.title}</div>
+                <div className="mt-1 text-xs text-neutral-500">
+                  缺 {missingSkills.join(" / ")} · {team.currentCount}/{team.maxCount}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 

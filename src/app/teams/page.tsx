@@ -1,9 +1,28 @@
 import { AppShell } from "@/components/app-shell";
 import { TeamCard } from "@/components/team-card";
 import { Card, Tag } from "@/components/ui";
-import { teams } from "@/data/mock";
+import { teams as mockTeams } from "@/data/mock";
+import { ensureCommunitySeed, toTeamProject } from "@/lib/community-db";
+import { prisma } from "@/lib/prisma";
+import type { TeamProject } from "@/types";
 
-export default function TeamsPage() {
+export const dynamic = "force-dynamic";
+
+async function getTeams(): Promise<TeamProject[]> {
+  try {
+    await ensureCommunitySeed();
+    const rows = await prisma.teamProject.findMany({ orderBy: { updatedAt: "desc" } });
+    return rows.map(toTeamProject);
+  } catch {
+    console.warn("[teams] database unavailable, rendering mock teams");
+    return mockTeams;
+  }
+}
+
+export default async function TeamsPage() {
+  const teams = await getTeams();
+  const activeSkills = [...new Set(teams.flatMap((team) => team.missingSkills?.length ? team.missingSkills : team.missingRoles))].slice(0, 8);
+
   return (
     <AppShell>
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -29,15 +48,15 @@ export default function TeamsPage() {
             <h2 className="text-sm font-black">推荐发布格式</h2>
             <div className="mt-3 space-y-3 text-sm leading-6 text-neutral-600">
               <p>项目：校园地图系统</p>
-              <p>缺：后端 / UI / Flutter</p>
-              <p>当前：3 人，原型已完成</p>
-              <p>状态：招募中，可先私信了解</p>
+              <p>需要：前端 / 后端 / UI / 答辩</p>
+              <p>已有：前端 / 后端</p>
+              <p>缺口会自动算出，用于发现页推荐队友。</p>
             </div>
           </Card>
           <Card className="p-4">
-            <h2 className="text-sm font-black">活跃方向</h2>
+            <h2 className="text-sm font-black">当前缺口</h2>
             <div className="mt-3 flex flex-wrap gap-2">
-              {["Next.js", "Flutter", "AI", "数学建模", "PPT", "后端"].map((tag) => (
+              {(activeSkills.length > 0 ? activeSkills : ["Next.js", "Flutter", "AI", "数学建模", "PPT", "后端"]).map((tag) => (
                 <Tag key={tag}>{tag}</Tag>
               ))}
             </div>

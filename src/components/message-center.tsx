@@ -68,7 +68,7 @@ export function MessageCenter() {
   async function sendMessage() {
     const trimmed = draft.trim();
     if (!trimmed) return;
-    const moderation = moderateContent(trimmed);
+    const moderation = moderateContent(trimmed, { allowContactInfo: true });
     if (moderation.decision !== "allow") {
       setModerationNotice(`${moderation.message}${moderation.tags.length ? ` 风险标签：${moderation.tags.join("、")}` : ""}`);
       return;

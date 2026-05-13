@@ -2,8 +2,8 @@ import { AppShell } from "@/components/app-shell";
 import { PostCard } from "@/components/post-card";
 import { ProfilePanel } from "@/components/profile-panel";
 import { TeamCard } from "@/components/team-card";
-import { teams } from "@/data/mock";
-import { ensureCommunitySeed, toPost, toUser } from "@/lib/community-db";
+import { teams as mockTeams } from "@/data/mock";
+import { ensureCommunitySeed, toPost, toTeamProject, toUser } from "@/lib/community-db";
 import { prisma } from "@/lib/prisma";
 
 export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +26,18 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
       take: 1
     })
   ).map(toPost);
-  const userTeams = teams.filter((team) => team.leaderId === user.id);
+  const userTeams = (
+    await prisma.teamProject.findMany({
+      where: { leaderId: user.id },
+      orderBy: { updatedAt: "desc" }
+    })
+  ).map(toTeamProject);
+  const fallbackTeams = (
+    await prisma.teamProject.findMany({
+      orderBy: { updatedAt: "desc" },
+      take: 1
+    })
+  ).map(toTeamProject);
 
   return (
     <AppShell>
@@ -41,7 +52,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
           </div>
           <div className="space-y-4">
             <h2 className="text-xl font-black">参与项目</h2>
-            {(userTeams.length ? userTeams : teams.slice(0, 1)).map((team) => (
+            {(userTeams.length ? userTeams : fallbackTeams.length ? fallbackTeams : mockTeams.slice(0, 1)).map((team) => (
               <TeamCard key={team.id} team={team} />
             ))}
           </div>

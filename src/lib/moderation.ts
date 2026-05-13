@@ -1,5 +1,9 @@
 import type { ModerationDecision, ModerationLevel, ModerationResult } from "@/types/admin";
 
+interface ModerationOptions {
+  allowContactInfo?: boolean;
+}
+
 const keywordRules: ReadonlyArray<{ words: string[]; category: string; weight: number; tag: string }> = [
   { words: ["约炮", "裸聊", "色情", "黄片"], category: "色情低俗", weight: 70, tag: "色情低俗" },
   { words: ["赌博", "博彩", "下注", "时时彩"], category: "赌博引流", weight: 70, tag: "赌博引流" },
@@ -8,7 +12,12 @@ const keywordRules: ReadonlyArray<{ words: string[]; category: string; weight: n
   { words: ["破解", "黑产", "出售账号", "盗号"], category: "黑灰产", weight: 55, tag: "黑灰产" },
   { words: ["加v", "加V", "微信", "VX", "vx", "扣扣", "QQ群", "qq群"], category: "联系方式", weight: 35, tag: "含联系方式" },
   { words: ["兼职刷单", "返利", "广告投放", "推广群"], category: "广告营销", weight: 45, tag: "广告营销" },
-  { words: ["wocaonima", "wo cao ni ma", "操你妈", "草你妈", "傻逼", "煞笔", "人身攻击"], category: "辱骂骚扰", weight: 75, tag: "辱骂骚扰" }
+  {
+    words: ["wocaonima", "wo cao ni ma", "nmsl", "操你妈", "草你妈", "你妈死了", "死妈", "傻逼", "煞笔", "人身攻击"],
+    category: "辱骂骚扰",
+    weight: 75,
+    tag: "辱骂骚扰"
+  }
 ];
 
 const patternRules: ReadonlyArray<{ pattern: RegExp; category: string; weight: number; tag: string; label: string }> = [
@@ -36,12 +45,17 @@ function decisionFromScore(score: number): ModerationDecision {
   return "allow";
 }
 
-export function moderateContent(input: string): ModerationResult {
+function shouldSkipRule(category: string, options: ModerationOptions) {
+  return Boolean(options.allowContactInfo && (category === "联系方式" || category === "站外链接"));
+}
+
+export function moderateContent(input: string, options: ModerationOptions = {}): ModerationResult {
   const content = normalizeText(input);
   const hits: ModerationResult["hits"] = [];
   const tags = new Set<string>();
 
   for (const rule of keywordRules) {
+    if (shouldSkipRule(rule.category, options)) continue;
     for (const word of rule.words) {
       if (content.includes(word)) {
         tags.add(rule.tag);
@@ -56,6 +70,7 @@ export function moderateContent(input: string): ModerationResult {
   }
 
   for (const rule of patternRules) {
+    if (shouldSkipRule(rule.category, options)) continue;
     const matches = content.match(rule.pattern);
     if (!matches) continue;
     tags.add(rule.tag);

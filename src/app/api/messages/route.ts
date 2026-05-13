@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   await ensureCommunitySeed();
   const body = await request.json();
   const senderId = String(body.senderId ?? "u_001");
-  const moderation = moderateContent(String(body.content ?? ""));
+  const moderation = moderateContent(String(body.content ?? ""), { allowContactInfo: true });
 
   const row = await prisma.directMessage.create({
     data: {

@@ -38,8 +38,8 @@ export function ColumnsPanel() {
   function createColumn() {
     const next: EditorialColumn = {
       id: `local_${Date.now()}`,
-      title: "新的运营专栏",
-      summary: "填写专栏摘要，用于首页推荐和推送。",
+      title: "新的发现推送",
+      summary: "填写推送摘要，用于发现页和学校官号展示。",
       content: "",
       status: "draft",
       sortOrder: items.length + 1
@@ -80,7 +80,7 @@ export function ColumnsPanel() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Newspaper size={18} className="text-brand-600" />
-            <h2 className="font-black">专栏列表</h2>
+            <h2 className="font-black">发现推送列表</h2>
           </div>
           <button onClick={createColumn} className="inline-flex h-9 items-center gap-2 rounded-lg bg-neutral-950 px-3 text-sm font-bold text-white">
             <Plus size={16} />
@@ -90,7 +90,7 @@ export function ColumnsPanel() {
 
         <div className="mt-4 space-y-3">
           {items.length === 0 ? (
-            <p className="rounded-lg border border-line p-4 text-sm text-neutral-500">暂无专栏，点击新建开始。</p>
+            <p className="rounded-lg border border-line p-4 text-sm text-neutral-500">暂无发现推送，点击新建开始。</p>
           ) : (
             items.map((item) => (
               <button
@@ -114,7 +114,7 @@ export function ColumnsPanel() {
       {selected && (
         <div className="rounded-lg border border-line bg-white p-4 shadow-subtle">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-black">编辑专栏</h2>
+            <h2 className="font-black">编辑发现推送</h2>
             <button
               onClick={saveSelected}
               disabled={saving}
@@ -127,7 +127,7 @@ export function ColumnsPanel() {
 
           <div className="mt-4 grid gap-4">
             <label className="grid gap-2">
-              <span className="text-xs font-black text-neutral-500">专栏标题</span>
+              <span className="text-xs font-black text-neutral-500">推送标题</span>
               <input
                 value={selected.title}
                 onChange={(event) => updateSelected({ title: event.target.value })}
@@ -182,7 +182,7 @@ export function ColumnsPanel() {
                 ) : (
                   <>
                     <ImagePlus size={28} className="text-neutral-400" />
-                    <div className="mt-2 text-sm font-bold">上传专栏封面</div>
+                    <div className="mt-2 text-sm font-bold">上传发现推送封面</div>
                   </>
                 )}
                 <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadCover(event.target.files?.[0])} />

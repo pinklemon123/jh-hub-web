@@ -4,6 +4,17 @@ import { adminAuditLogs, adminRules } from "@/data/admin";
 import type { AdminAuditLog, AdminRule } from "@/types/admin";
 import { prisma } from "@/lib/prisma";
 
+function unique(values: string[]) {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function deriveTeamSkills(team: TeamProject) {
+  const currentSkills = unique(team.currentSkills ?? team.tags);
+  const missingSkills = unique(team.missingSkills ?? team.missingRoles);
+  const requiredSkills = unique([...(team.requiredSkills ?? []), ...currentSkills, ...missingSkills]);
+  return { requiredSkills, currentSkills, missingSkills };
+}
+
 export async function ensureCommunitySeed() {
   const existingUsers = await prisma.hubUser.count();
 
@@ -95,6 +106,7 @@ export async function ensureCommunitySeed() {
   if (existingTeams === 0) {
     await prisma.teamProject.createMany({
       data: teams.map((team) => ({
+        ...deriveTeamSkills(team),
         id: team.id,
         title: team.title,
         summary: team.summary,
@@ -107,6 +119,14 @@ export async function ensureCommunitySeed() {
         tags: team.tags,
         stage: team.stage
       }))
+    });
+  }
+
+  for (const team of teams) {
+    const skills = deriveTeamSkills(team);
+    await prisma.teamProject.updateMany({
+      where: { id: team.id },
+      data: skills
     });
   }
 
@@ -136,6 +156,39 @@ async function ensureOperationalSeed() {
         target: log.target,
         reason: log.reason
       }))
+    });
+  }
+
+  const existingColumns = await prisma.editorialColumn.count();
+  if (existingColumns === 0) {
+    await prisma.editorialColumn.create({
+      data: {
+        title: "学校官号",
+        summary: "学校官方通知、活动入口和校园服务更新统一进入发现页。",
+        content: "这里用于发布学校官网、学院活动、比赛报名、系统维护和校园服务类内容。",
+        status: "published",
+        sortOrder: 1
+      }
+    });
+  }
+
+  const existingAnnouncements = await prisma.announcement.count();
+  if (existingAnnouncements === 0) {
+    await prisma.announcement.createMany({
+      data: [
+        {
+          title: "挑战杯校内组队开放",
+          body: "需要 PPT、答辩、建模、前后端方向的同学可以在组队页发布需求。",
+          slot: "discover",
+          status: "published"
+        },
+        {
+          title: "项目展示征集",
+          body: "欢迎上传项目截图、活动海报和页面预览，首页只展示缩略图，详情页展示完整内容。",
+          slot: "discover",
+          status: "published"
+        }
+      ]
     });
   }
 }
@@ -264,6 +317,9 @@ export function toTeamProject(row: {
   currentCount: number;
   maxCount: number;
   missingRoles: string[];
+  requiredSkills: string[];
+  currentSkills: string[];
+  missingSkills: string[];
   tags: string[];
   stage: string;
 }): TeamProject {
@@ -277,6 +333,9 @@ export function toTeamProject(row: {
     currentCount: row.currentCount,
     maxCount: row.maxCount,
     missingRoles: row.missingRoles,
+    requiredSkills: row.requiredSkills,
+    currentSkills: row.currentSkills,
+    missingSkills: row.missingSkills,
     tags: row.tags,
     stage: row.stage
   };

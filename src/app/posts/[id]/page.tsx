@@ -9,7 +9,7 @@ import { PostCard } from "@/components/post-card";
 import { ReportButton } from "@/components/report-button";
 import { Avatar, Button, Card, Tag } from "@/components/ui";
 import { comments as mockComments, posts as mockPosts, users } from "@/data/mock";
-import { ensureCommunitySeed, toComment, toPost } from "@/lib/community-db";
+import { ensureCommunitySeed, toComment, toPost, toUser } from "@/lib/community-db";
 import { prisma } from "@/lib/prisma";
 import type { Comment, Post, User } from "@/types";
 
@@ -22,6 +22,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
   let author: AuthorSummary | null = mockPost ? users.find((user) => user.id === mockPost.authorId) ?? null : null;
   let postComments: Comment[] = mockPost ? mockComments.filter((comment) => comment.postId === mockPost.id) : [];
   let relatedPosts: Post[] = mockPost ? mockPosts.filter((item) => item.id !== mockPost.id && item.type === mockPost.type).slice(0, 2) : [];
+  let allUsers: User[] = users;
 
   try {
     await ensureCommunitySeed();
@@ -33,6 +34,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
     if (row && row.moderationStatus !== "blocked" && row.moderationStatus !== "rejected") {
       post = toPost(row);
       const dbAuthor = await prisma.hubUser.findUnique({ where: { id: post.authorId } });
+      allUsers = (await prisma.hubUser.findMany({ orderBy: { createdAt: "asc" } })).map(toUser);
       author = dbAuthor
         ? {
             id: dbAuthor.id,
@@ -61,7 +63,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
   }
 
   if (!post) notFound();
-  const candidates = users
+  const candidates = allUsers
     .filter((user) => user.id !== "system" && user.id !== post.authorId)
     .map((user) => {
       const signals = [...post.requiredSkills, ...post.tags];

@@ -3,6 +3,8 @@ import type { TeamProject } from "@/types";
 import { Button, Card, Tag } from "./ui";
 
 export function TeamCard({ team }: { team: TeamProject }) {
+  const missingSkills = team.missingSkills?.length ? team.missingSkills : team.missingRoles;
+
   return (
     <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -25,7 +27,7 @@ export function TeamCard({ team }: { team: TeamProject }) {
           <Users size={16} />
           {team.currentCount}/{team.maxCount}
         </span>
-        <span className="text-sm text-neutral-500">缺：{team.missingRoles.join(" / ")}</span>
+        <span className="text-sm text-neutral-500">缺：{missingSkills.join(" / ")}</span>
         <Button className="ml-auto" size="sm">
           申请加入
           <ArrowRight size={15} />

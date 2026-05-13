@@ -14,7 +14,7 @@ const navItems: ReadonlyArray<{ href: Route; label: string; icon: typeof Activit
   { href: "/admin/reports", label: "举报中心", icon: Flag },
   { href: "/admin/users", label: "用户管理", icon: UserCog },
   { href: "/admin/warnings", label: "警告私信", icon: MessageSquareWarning },
-  { href: "/admin/columns", label: "专栏编辑", icon: Newspaper },
+  { href: "/admin/columns", label: "发现运营", icon: Newspaper },
   { href: "/admin/rules", label: "风控规则", icon: ShieldCheck },
   { href: "/admin/logs", label: "审核日志", icon: ScrollText },
   { href: "/admin/announcements", label: "公告运营", icon: Megaphone }

@@ -72,6 +72,9 @@ export interface TeamProject {
   currentCount: number;
   maxCount: number;
   missingRoles: string[];
+  requiredSkills?: string[];
+  currentSkills?: string[];
+  missingSkills?: string[];
   tags: string[];
   stage: string;
 }
