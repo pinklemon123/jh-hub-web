@@ -30,7 +30,9 @@ export function ModerationTable({
   onStatusFilterChange,
   onQueryChange,
   onSelect,
-  onAction
+  onAction,
+  selectedItem,
+  onRefresh
 }: {
   queue: AdminQueueItem[];
   filter: AdminContentType | "all";
@@ -41,6 +43,8 @@ export function ModerationTable({
   onQueryChange: (value: string) => void;
   onSelect: (item: AdminQueueItem) => void;
   onAction: (action: string, item: AdminQueueItem) => void;
+  selectedItem: AdminQueueItem | null;
+  onRefresh: () => void;
 }) {
   return (
     <div className="min-w-0 rounded-lg border border-line bg-white shadow-subtle">
@@ -50,6 +54,9 @@ export function ModerationTable({
           <p className="mt-1 text-sm text-neutral-500">按风险分数排序，优先处理私信和举报内容。</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
+          <button onClick={onRefresh} className="h-10 rounded-lg border border-line bg-white px-3 text-sm font-bold text-neutral-700">
+            刷新
+          </button>
           <div className="flex h-10 items-center gap-2 rounded-lg border border-line bg-paper px-3">
             <Search size={16} className="text-neutral-400" />
             <input
@@ -104,11 +111,15 @@ export function ModerationTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {queue
-              .slice()
-              .sort((a, b) => b.moderation.score - a.moderation.score)
-              .map((item) => (
-                <tr key={`${item.type}-${item.id}`} className="align-top">
+            {queue.map((item) => {
+              const active = selectedItem?.id === item.id && selectedItem.type === item.type;
+
+              return (
+                <tr
+                  key={`${item.type}-${item.id}`}
+                  className={cn("cursor-pointer align-top hover:bg-brand-50/40", active && "bg-brand-50/70")}
+                  onClick={() => onSelect(item)}
+                >
                   <td className="max-w-[360px] px-4 py-4">
                     <div className="font-black">{item.title}</div>
                     <p className="mt-1 line-clamp-2 text-neutral-500">{item.content}</p>
@@ -145,19 +156,38 @@ export function ModerationTable({
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex gap-2">
-                      <button onClick={() => onSelect(item)} className="rounded-md border border-line px-2 py-1 text-xs font-bold">
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onSelect(item);
+                        }}
+                        className="rounded-md border border-line px-2 py-1 text-xs font-bold"
+                      >
                         详情
                       </button>
-                      <button onClick={() => onAction("approve", item)} className="rounded-md border border-line px-2 py-1 text-xs font-bold">
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onAction("approve", item);
+                        }}
+                        className="rounded-md border border-line px-2 py-1 text-xs font-bold"
+                      >
                         通过
                       </button>
-                      <button onClick={() => onAction("block", item)} className="rounded-md bg-neutral-950 px-2 py-1 text-xs font-bold text-white">
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onAction("block", item);
+                        }}
+                        className="rounded-md bg-neutral-950 px-2 py-1 text-xs font-bold text-white"
+                      >
                         拦截
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

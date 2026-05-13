@@ -3,7 +3,7 @@
 import { Gavel } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AdminQueueItem } from "@/types/admin";
-import { levelClass, levelLabel } from "./admin-labels";
+import { contentTypeLabel, levelClass, levelLabel } from "./admin-labels";
 
 export function ModerationDetail({
   item,
@@ -31,9 +31,12 @@ export function ModerationDetail({
               <span className={cn("rounded-md border px-2 py-1 text-xs font-black", statusClass(item.moderationStatus))}>
                 {statusLabel(item.moderationStatus)}
               </span>
+              <span className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-xs font-black text-neutral-600">
+                {contentTypeLabel(item.type)}
+              </span>
               {item.reviewNote && <span className="ml-2 text-xs text-neutral-400">{item.reviewNote}</span>}
             </div>
-            <p className="mt-2 max-h-32 overflow-y-auto rounded-lg border border-line bg-paper p-3 text-sm leading-6 text-neutral-600">
+            <p className="mt-2 max-h-72 whitespace-pre-wrap overflow-y-auto rounded-lg border border-line bg-paper p-3 text-sm leading-6 text-neutral-700">
               {item.content}
             </p>
           </div>
@@ -45,6 +48,14 @@ export function ModerationDetail({
             <div className="rounded-lg border border-line p-3">
               <div className="text-xs font-black text-neutral-400">举报数</div>
               <div className="mt-1 font-semibold">{item.reportCount}</div>
+            </div>
+            <div className="rounded-lg border border-line p-3">
+              <div className="text-xs font-black text-neutral-400">内容ID</div>
+              <div className="mt-1 break-all font-semibold">{item.id}</div>
+            </div>
+            <div className="rounded-lg border border-line p-3">
+              <div className="text-xs font-black text-neutral-400">发布时间</div>
+              <div className="mt-1 font-semibold">{item.createdAt}</div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">

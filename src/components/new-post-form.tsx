@@ -20,10 +20,12 @@ export function NewPostForm() {
   const [requiredSkills, setRequiredSkills] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   async function submit(status = "已发布") {
     if (!title.trim() || !content.trim()) return;
     setSaving(true);
+    setMessage("");
     const response = await fetch("/api/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -38,8 +40,12 @@ export function NewPostForm() {
         status
       })
     });
-    const data = (await response.json()) as { item?: { id: string } };
+    const data = (await response.json()) as { item?: { id: string }; error?: string; message?: string; moderation?: { message: string } };
     setSaving(false);
+    if (!response.ok) {
+      setMessage(data.message ?? data.moderation?.message ?? "发布失败，请检查内容或数据库连接。");
+      return;
+    }
     if (data.item?.id) router.push(`/posts/${data.item.id}`);
   }
 
@@ -80,6 +86,7 @@ export function NewPostForm() {
           className="h-11 w-full rounded-lg border border-line bg-paper px-4 text-sm outline-none focus:border-brand-500"
           placeholder="缺少技能，例如 UI, 后端, PPT"
         />
+        {message && <div className="rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700">{message}</div>}
         <div className="flex justify-end gap-3">
           <Button type="button" variant="secondary" disabled={saving} onClick={() => submit("草稿")}>
             保存草稿
