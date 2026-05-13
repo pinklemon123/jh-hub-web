@@ -42,6 +42,17 @@ export const api = {
       techPosts: []
     });
   },
+  async getDiscover(userId = "u_001") {
+    return getJson(`${endpoints.discover}?userId=${encodeURIComponent(userId)}`, {
+      officialFeed: [],
+      recommendations: {
+        strategy: "rule_based_skill_matching",
+        teamMatches: [],
+        teammateMatches: [],
+        techPosts: []
+      }
+    });
+  },
   async getNotifications() {
     await delay();
     return notifications;
@@ -84,6 +95,7 @@ export const endpoints = {
   notifications: "/api/notifications",
   conversations: "/api/conversations",
   teams: "/api/teams",
+  discover: "/api/discover",
   recommendations: "/api/recommendations",
   adminOverview: "/api/admin/overview",
   adminQueue: "/api/admin/moderation",

@@ -79,11 +79,13 @@ export function AnnouncementsPanel() {
     setSelectedId(next.id);
   }
 
-  function handleImage(file: File | undefined) {
+  async function handleImage(file: File | undefined) {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => updateSelected({ imageUrl: String(reader.result) });
-    reader.readAsDataURL(file);
+    const formData = new FormData();
+    formData.append("files", file);
+    const response = await fetch("/api/uploads/images", { method: "POST", body: formData });
+    const data = (await response.json()) as { urls?: string[] };
+    if (data.urls?.[0]) updateSelected({ imageUrl: data.urls[0] });
   }
 
   async function saveSelected() {

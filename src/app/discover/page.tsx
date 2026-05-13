@@ -1,88 +1,15 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { Bell, Compass, UserPlus, Users } from "lucide-react";
+import { Compass, UserPlus, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { OfficialFeedCarousel } from "@/components/official-feed-carousel";
 import { PostCard } from "@/components/post-card";
 import { Avatar, Button, Card, Tag } from "@/components/ui";
-import { posts as mockPosts, teams as mockTeams, users as mockUsers } from "@/data/mock";
-import { ensureCommunitySeed, toPost, toTeamProject, toUser } from "@/lib/community-db";
-import { prisma } from "@/lib/prisma";
+import { getDiscoverData } from "@/lib/discover-data";
 import { recommendTeamsForUser, recommendTeammatesForTeams, recommendTechPostsForUser } from "@/lib/recommendations";
-import type { Post, TeamProject, User } from "@/types";
+import type { Post } from "@/types";
 
 export const dynamic = "force-dynamic";
-
-interface OfficialFeedItem {
-  id: string;
-  title: string;
-  body: string;
-  type: "学校官号" | "校园公告";
-}
-
-async function getDiscoverData() {
-  try {
-    await ensureCommunitySeed();
-    const [columnRows, announcementRows, userRows, teamRows, postRows] = await Promise.all([
-      prisma.editorialColumn.findMany({
-        where: { status: "published" },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-        take: 4
-      }),
-      prisma.announcement.findMany({
-        where: { status: "published", slot: { in: ["discover", "home"] } },
-        orderBy: { createdAt: "desc" },
-        take: 4
-      }),
-      prisma.hubUser.findMany({ orderBy: { createdAt: "asc" } }),
-      prisma.teamProject.findMany({ orderBy: { updatedAt: "desc" } }),
-      prisma.communityPost.findMany({
-        where: { moderationStatus: "approved" },
-        include: { images: true, comments: true },
-        orderBy: { createdAt: "desc" },
-        take: 12
-      })
-    ]);
-
-    const officialFeed: OfficialFeedItem[] = [
-      ...columnRows.map((item) => ({
-        id: item.id,
-        title: item.title,
-        body: item.summary,
-        type: "学校官号" as const
-      })),
-      ...announcementRows.map((item) => ({
-        id: item.id,
-        title: item.title,
-        body: item.body,
-        type: "校园公告" as const
-      }))
-    ];
-
-    return {
-      source: "database",
-      officialFeed,
-      users: userRows.map(toUser),
-      teams: teamRows.map(toTeamProject),
-      posts: postRows.map(toPost)
-    };
-  } catch {
-    console.warn("[discover] database unavailable, rendering mock recommendations");
-    return {
-      source: "mock",
-      officialFeed: [
-        {
-          id: "mock_school",
-          title: "学校官号",
-          body: "数据库未连接时显示的占位内容。连接数据库后，这里会展示运营后台发布的学校官方推送。",
-          type: "学校官号" as const
-        }
-      ],
-      users: mockUsers,
-      teams: mockTeams,
-      posts: mockPosts
-    };
-  }
-}
 
 export default async function DiscoverPage() {
   const data = await getDiscoverData();
@@ -108,7 +35,7 @@ export default async function DiscoverPage() {
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              {["学校官号", "组队补位", "推荐队友", "技术讨论", data.source === "database" ? "数据库" : "占位数据"].map((tag) => (
+              {["学校官号", "活动轮播", "组队补位", "推荐队友", data.source === "database" ? "数据库" : "占位数据"].map((tag) => (
                 <Tag key={tag}>{tag}</Tag>
               ))}
             </div>
@@ -119,26 +46,18 @@ export default async function DiscoverPage() {
             <div className="mt-3 space-y-2 text-sm leading-6 text-neutral-600">
               <p>技术贴：按用户技能和帖子标签找相似内容。</p>
               <p>组队贴：按项目缺口找能补位的人。</p>
-              <p>私信：允许交换联系方式，只拦辱骂和违法风险。</p>
+              <p>运营推送：官号封面和公告图进入轮播。</p>
             </div>
           </Card>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
           <Card className="p-5">
-            <div className="flex items-center gap-2">
-              <Bell size={18} className="text-brand-700" />
+            <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-black">学校官号与校园公告</h2>
+              <span className="text-xs font-bold text-neutral-500">{data.officialFeed.length} 条推送</span>
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {data.officialFeed.map((item) => (
-                <article key={item.id} className="rounded-lg border border-line p-4">
-                  <div className="mb-2 inline-flex rounded-md bg-brand-50 px-2 py-1 text-xs font-black text-brand-700">{item.type}</div>
-                  <h3 className="font-black">{item.title}</h3>
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-neutral-600">{item.body}</p>
-                </article>
-              ))}
-            </div>
+            <OfficialFeedCarousel items={data.officialFeed} />
           </Card>
 
           <Card className="p-5">
