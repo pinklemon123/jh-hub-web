@@ -12,9 +12,10 @@ interface PreviewImage {
   id: string;
   file: File;
   url: string;
+  remoteUrl?: string;
 }
 
-export function ImageUploader() {
+export function ImageUploader({ onUploadedChange }: { onUploadedChange?: (urls: string[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [images, setImages] = useState<PreviewImage[]>([]);
   const [error, setError] = useState("");
@@ -47,15 +48,18 @@ export function ImageUploader() {
         }
 
         const compressedFile = await compressImage(file);
+        const remoteUrl = await uploadImage(compressedFile);
         next.push({
           id: `${compressedFile.name}-${compressedFile.lastModified}-${crypto.randomUUID()}`,
           file: compressedFile,
-          url: URL.createObjectURL(compressedFile)
+          url: URL.createObjectURL(compressedFile),
+          remoteUrl
         });
       }
 
       setImages((current) => {
         const merged = [...current, ...next].slice(0, MAX_IMAGES);
+        onUploadedChange?.(merged.flatMap((image) => (image.remoteUrl ? [image.remoteUrl] : [])));
         if (current.length + next.length > MAX_IMAGES) {
           setError("第一版最多上传 4 张图片。");
         }
@@ -72,7 +76,9 @@ export function ImageUploader() {
     setImages((current) => {
       const target = current.find((image) => image.id === id);
       if (target) URL.revokeObjectURL(target.url);
-      return current.filter((image) => image.id !== id);
+      const next = current.filter((image) => image.id !== id);
+      onUploadedChange?.(next.flatMap((image) => (image.remoteUrl ? [image.remoteUrl] : [])));
+      return next;
     });
   }
 
@@ -156,4 +162,16 @@ async function compressImage(file: File) {
     type: "image/webp",
     lastModified: Date.now()
   });
+}
+
+async function uploadImage(file: File) {
+  const formData = new FormData();
+  formData.append("files", file);
+  const response = await fetch("/api/uploads/images", {
+    method: "POST",
+    body: formData
+  });
+  if (!response.ok) throw new Error("upload_failed");
+  const data = (await response.json()) as { urls?: string[] };
+  return data.urls?.[0];
 }

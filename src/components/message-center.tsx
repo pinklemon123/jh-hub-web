@@ -1,20 +1,33 @@
 "use client";
 
 import { Send } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Avatar, Button, Card } from "@/components/ui";
 import { conversations, messages, notifications, users } from "@/data/mock";
+import { moderateContent } from "@/lib/moderation";
+import { ReportButton } from "./report-button";
 import type { Message } from "@/types";
 
 export function MessageCenter() {
   const [activeId, setActiveId] = useState("c_system");
   const [draft, setDraft] = useState("");
+  const [moderationNotice, setModerationNotice] = useState("");
   const [localMessages, setLocalMessages] = useState<Message[]>(messages);
+  const [adminMessages, setAdminMessages] = useState<Array<{ id: string; title: string; body: string; createdAt: string }>>([]);
 
   const activeConversation = conversations.find((conversation) => conversation.id === activeId) ?? conversations[0];
   const activeMessages = localMessages.filter((message) => message.conversationId === activeConversation.id);
   const directConversations = conversations.filter((conversation) => conversation.kind === "direct");
   const systemConversation = conversations.find((conversation) => conversation.kind === "system");
+
+  useEffect(() => {
+    fetch("/api/system-messages")
+      .then((response) => response.json())
+      .then((data: { items?: Array<{ id: string; title: string; body: string; createdAt: string }> }) => {
+        setAdminMessages(data.items ?? []);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const systemItems = useMemo(
     () => [
@@ -33,14 +46,28 @@ export function MessageCenter() {
           body: message.content,
           time: message.time,
           unread: false
-        }))
+        })),
+      ...adminMessages.map((item) => ({
+        id: item.id,
+        title: item.title,
+        body: item.body,
+        time: new Date(item.createdAt).toLocaleString("zh-CN"),
+        unread: true
+      }))
     ],
-    [localMessages]
+    [adminMessages, localMessages]
   );
 
   function sendMessage() {
     const trimmed = draft.trim();
     if (!trimmed) return;
+    const moderation = moderateContent(trimmed);
+    if (moderation.decision !== "allow") {
+      setModerationNotice(`${moderation.message}${moderation.tags.length ? ` 风险标签：${moderation.tags.join("、")}` : ""}`);
+      return;
+    }
+
+    setModerationNotice("");
     setLocalMessages((current) => [
       ...current,
       {
@@ -147,7 +174,19 @@ export function MessageCenter() {
                     }`}
                   >
                     {message.content}
-                    <div className={`mt-1 text-xs ${mine ? "text-white/70" : "text-neutral-400"}`}>{message.time}</div>
+                    <div className={`mt-1 flex items-center gap-2 text-xs ${mine ? "text-white/70" : "text-neutral-400"}`}>
+                      <span>{message.time}</span>
+                      {!mine && (
+                        <ReportButton
+                          targetType="message"
+                          targetId={message.id}
+                          accusedName={sender?.name ?? "未知用户"}
+                          snapshot={message.content}
+                          compact
+                          className="text-neutral-400 hover:text-red-700"
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -156,16 +195,26 @@ export function MessageCenter() {
         </div>
 
         {activeConversation.kind === "direct" && (
-          <div className="flex gap-3 border-t border-line p-4">
-            <input
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              className="h-11 flex-1 rounded-lg border border-line bg-white px-4 text-sm outline-none focus:border-brand-500"
-              placeholder="围绕项目沟通下一步"
-            />
-            <Button size="icon" aria-label="发送消息" onClick={sendMessage}>
-              <Send size={17} />
-            </Button>
+          <div className="border-t border-line p-4">
+            {moderationNotice && (
+              <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+                {moderationNotice}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <input
+                value={draft}
+                onChange={(event) => {
+                  setDraft(event.target.value);
+                  if (moderationNotice) setModerationNotice("");
+                }}
+                className="h-11 flex-1 rounded-lg border border-line bg-white px-4 text-sm outline-none focus:border-brand-500"
+                placeholder="围绕项目沟通下一步"
+              />
+              <Button size="icon" aria-label="发送消息" onClick={sendMessage}>
+                <Send size={17} />
+              </Button>
+            </div>
           </div>
         )}
       </Card>

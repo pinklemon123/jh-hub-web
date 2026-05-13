@@ -3,6 +3,7 @@ import { MessageSquare, Radio, Users } from "lucide-react";
 import Link from "next/link";
 import type { Post } from "@/types";
 import { PostImageGrid } from "./post-image-grid";
+import { ReportButton } from "./report-button";
 import { Avatar, Card, Tag } from "./ui";
 
 const typeLabels = {
@@ -57,6 +58,13 @@ export function PostCard({ post }: { post: Post }) {
               </span>
             )}
             <span className="ml-auto rounded-full bg-paper px-3 py-1 text-neutral-700">{post.status}</span>
+            <ReportButton
+              targetType="post"
+              targetId={post.id}
+              accusedName={post.author}
+              snapshot={`${post.title}\n${post.summary}`}
+              compact
+            />
             <Link href={postHref} className="font-bold text-brand-700 hover:text-brand-600">
               查看详情
             </Link>

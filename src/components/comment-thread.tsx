@@ -3,6 +3,7 @@
 import { Reply, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Comment } from "@/types";
+import { ReportButton } from "./report-button";
 import { Avatar, Button } from "./ui";
 
 export function CommentThread({ postId, initialComments }: { postId: string; initialComments: Comment[] }) {
@@ -64,6 +65,13 @@ export function CommentThread({ postId, initialComments }: { postId: string; ini
                   <Reply size={14} />
                   回复
                 </button>
+                <ReportButton
+                  targetType="comment"
+                  targetId={comment.id}
+                  accusedName={comment.author}
+                  snapshot={comment.content}
+                  compact
+                />
                 {comment.mine && (
                   <button
                     className="inline-flex items-center gap-1 text-xs font-bold text-neutral-500 hover:text-brand-700"

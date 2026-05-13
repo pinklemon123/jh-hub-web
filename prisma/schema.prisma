@@ -1,0 +1,172 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Announcement {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title     String
+  body      String
+  slot      String   @default("home")
+  status    String   @default("draft")
+  imageUrl  String?  @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("announcements")
+}
+
+model Report {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporterId  String   @map("reporter_id")
+  targetType  String   @map("target_type")
+  targetId    String   @map("target_id")
+  accusedName String   @map("accused_name")
+  reason      String
+  detail      String   @default("")
+  snapshot    String   @default("")
+  status      String   @default("open")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("reports")
+}
+
+model SystemMessage {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scope        String
+  targetUserId String?  @map("target_user_id")
+  targetName   String   @map("target_name")
+  title        String
+  body         String
+  messageType  String   @default("warning") @map("message_type")
+  createdBy    String   @default("admin01") @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("system_messages")
+}
+
+model HubUser {
+  id        String   @id
+  name      String
+  realName  String   @map("real_name")
+  college   String
+  grade     String
+  direction String
+  avatar    String
+  bio       String
+  contact   String
+  status    String
+  online    Boolean  @default(false)
+  skills    String[] @default([])
+  stats     Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  posts    CommunityPost[]
+  comments PostComment[]
+  messages DirectMessage[]
+
+  @@map("hub_users")
+}
+
+model CommunityPost {
+  id             String      @id
+  title          String
+  type           String
+  authorId       String      @map("author_id")
+  authorName     String      @map("author_name")
+  authorAvatar   String      @map("author_avatar")
+  category       String
+  board          String
+  summary        String
+  content        String
+  tags           String[]    @default([])
+  requiredSkills String[]    @default([]) @map("required_skills")
+  openSlots      Int         @default(0) @map("open_slots")
+  status         String
+  moderationStatus String   @default("pending") @map("moderation_status")
+  reviewedAt     DateTime?   @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote     String      @default("") @map("review_note")
+  heat           Int         @default(0)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  author   HubUser     @relation(fields: [authorId], references: [id])
+  images   PostImage[]
+  comments PostComment[]
+
+  @@map("community_posts")
+}
+
+model PostImage {
+  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId    String        @map("post_id")
+  url       String
+  alt       String
+  width     Int           @default(0)
+  height    Int           @default(0)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_images")
+}
+
+model PostComment {
+  id           String        @id
+  postId       String        @map("post_id")
+  authorId     String        @map("author_id")
+  authorName   String        @map("author_name")
+  authorAvatar String        @map("author_avatar")
+  content      String
+  moderationStatus String   @default("pending") @map("moderation_status")
+  reviewedAt    DateTime?     @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote    String        @default("") @map("review_note")
+  replyTo      String?       @map("reply_to")
+  mine         Boolean       @default(false)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author HubUser       @relation(fields: [authorId], references: [id])
+
+  @@map("post_comments")
+}
+
+model DirectMessage {
+  id             String   @id
+  conversationId String   @map("conversation_id")
+  senderId       String   @map("sender_id")
+  receiverId     String?  @map("receiver_id")
+  content        String
+  moderationStatus String   @default("pending") @map("moderation_status")
+  reviewedAt      DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote      String   @default("") @map("review_note")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sender HubUser @relation(fields: [senderId], references: [id])
+
+  @@map("direct_messages")
+}
+
+model EditorialColumn {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title     String
+  summary   String
+  content   String   @default("")
+  coverUrl  String?  @map("cover_url")
+  status    String   @default("draft")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("editorial_columns")
+}

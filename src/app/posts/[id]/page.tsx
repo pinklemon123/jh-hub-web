@@ -6,20 +6,39 @@ import { AppShell } from "@/components/app-shell";
 import { CommentThread } from "@/components/comment-thread";
 import { PostImageGrid } from "@/components/post-image-grid";
 import { PostCard } from "@/components/post-card";
+import { ReportButton } from "@/components/report-button";
 import { Avatar, Button, Card, Tag } from "@/components/ui";
-import { comments, posts, users } from "@/data/mock";
+import { users } from "@/data/mock";
+import { ensureCommunitySeed, toComment, toPost } from "@/lib/community-db";
+import { prisma } from "@/lib/prisma";
 
 export default async function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const post = posts.find((item) => item.id === id);
+  await ensureCommunitySeed();
+  const row = await prisma.communityPost.findUnique({
+    where: { id },
+    include: { images: true, comments: true }
+  });
 
-  if (!post) {
+  if (!row || row.moderationStatus === "blocked" || row.moderationStatus === "rejected") {
     notFound();
   }
 
-  const author = users.find((user) => user.id === post.authorId);
-  const postComments = comments.filter((comment) => comment.postId === post.id);
-  const relatedPosts = posts.filter((item) => item.id !== post.id && item.type === post.type).slice(0, 2);
+  const post = toPost(row);
+  const author = await prisma.hubUser.findUnique({ where: { id: post.authorId } });
+  const postComments = (
+    await prisma.postComment.findMany({
+      where: { postId: post.id, moderationStatus: { notIn: ["blocked", "rejected"] } },
+      orderBy: { createdAt: "asc" }
+    })
+  ).map(toComment);
+  const relatedPosts = (
+    await prisma.communityPost.findMany({
+      where: { id: { not: post.id }, type: post.type, moderationStatus: { notIn: ["blocked", "rejected"] } },
+      include: { images: true, comments: true },
+      take: 2
+    })
+  ).map(toPost);
   const candidates = users
     .filter((user) => user.id !== "system" && user.id !== post.authorId)
     .map((user) => {
@@ -54,6 +73,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
                   </Link>
                   <span>{post.createdAt}</span>
                   <span>{post.category} / {post.board}</span>
+                  <ReportButton targetType="post" targetId={post.id} accusedName={post.author} snapshot={`${post.title}\n${post.content}`} />
                 </div>
                 <h1 className="mt-3 text-2xl font-black leading-tight text-ink">{post.title}</h1>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -70,9 +90,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
                 <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
                   <span className="rounded-full bg-paper px-3 py-1 text-xs font-bold text-neutral-700">{post.status}</span>
                   {post.openSlots > 0 && (
-                    <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">
-                      还缺 {post.openSlots} 人
-                    </span>
+                    <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">缺 {post.openSlots} 人</span>
                   )}
                   <Link href="/messages" className="ml-auto">
                     <Button>
