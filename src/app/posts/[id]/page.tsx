@@ -8,37 +8,59 @@ import { PostImageGrid } from "@/components/post-image-grid";
 import { PostCard } from "@/components/post-card";
 import { ReportButton } from "@/components/report-button";
 import { Avatar, Button, Card, Tag } from "@/components/ui";
-import { users } from "@/data/mock";
+import { comments as mockComments, posts as mockPosts, users } from "@/data/mock";
 import { ensureCommunitySeed, toComment, toPost } from "@/lib/community-db";
 import { prisma } from "@/lib/prisma";
+import type { Comment, Post, User } from "@/types";
+
+type AuthorSummary = Pick<User, "id" | "name" | "avatar" | "direction" | "bio">;
 
 export default async function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await ensureCommunitySeed();
-  const row = await prisma.communityPost.findUnique({
-    where: { id },
-    include: { images: true, comments: true }
-  });
+  const mockPost = mockPosts.find((item) => item.id === id) ?? null;
+  let post: Post | null = mockPost;
+  let author: AuthorSummary | null = mockPost ? users.find((user) => user.id === mockPost.authorId) ?? null : null;
+  let postComments: Comment[] = mockPost ? mockComments.filter((comment) => comment.postId === mockPost.id) : [];
+  let relatedPosts: Post[] = mockPost ? mockPosts.filter((item) => item.id !== mockPost.id && item.type === mockPost.type).slice(0, 2) : [];
 
-  if (!row || row.moderationStatus === "blocked" || row.moderationStatus === "rejected") {
-    notFound();
+  try {
+    await ensureCommunitySeed();
+    const row = await prisma.communityPost.findUnique({
+      where: { id },
+      include: { images: true, comments: true }
+    });
+
+    if (row && row.moderationStatus !== "blocked" && row.moderationStatus !== "rejected") {
+      post = toPost(row);
+      const dbAuthor = await prisma.hubUser.findUnique({ where: { id: post.authorId } });
+      author = dbAuthor
+        ? {
+            id: dbAuthor.id,
+            name: dbAuthor.name,
+            avatar: dbAuthor.avatar,
+            direction: dbAuthor.direction,
+            bio: dbAuthor.bio
+          }
+        : null;
+      postComments = (
+        await prisma.postComment.findMany({
+          where: { postId: post.id, moderationStatus: { notIn: ["blocked", "rejected"] } },
+          orderBy: { createdAt: "asc" }
+        })
+      ).map(toComment);
+      relatedPosts = (
+        await prisma.communityPost.findMany({
+          where: { id: { not: post.id }, type: post.type, moderationStatus: { notIn: ["blocked", "rejected"] } },
+          include: { images: true, comments: true },
+          take: 2
+        })
+      ).map(toPost);
+    }
+  } catch {
+    console.warn("[posts/:id] database unavailable, rendering mock detail");
   }
 
-  const post = toPost(row);
-  const author = await prisma.hubUser.findUnique({ where: { id: post.authorId } });
-  const postComments = (
-    await prisma.postComment.findMany({
-      where: { postId: post.id, moderationStatus: { notIn: ["blocked", "rejected"] } },
-      orderBy: { createdAt: "asc" }
-    })
-  ).map(toComment);
-  const relatedPosts = (
-    await prisma.communityPost.findMany({
-      where: { id: { not: post.id }, type: post.type, moderationStatus: { notIn: ["blocked", "rejected"] } },
-      include: { images: true, comments: true },
-      take: 2
-    })
-  ).map(toPost);
+  if (!post) notFound();
   const candidates = users
     .filter((user) => user.id !== "system" && user.id !== post.authorId)
     .map((user) => {

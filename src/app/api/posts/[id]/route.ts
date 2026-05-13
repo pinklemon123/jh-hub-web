@@ -1,18 +1,26 @@
 import { NextResponse } from "next/server";
+import { posts as mockPosts } from "@/data/mock";
 import { ensureCommunitySeed, toPost } from "@/lib/community-db";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  await ensureCommunitySeed();
   const { id } = await params;
-  const post = await prisma.communityPost.findUnique({
-    where: { id },
-    include: { images: true, comments: true }
-  });
-  if (!post || post.moderationStatus === "blocked" || post.moderationStatus === "rejected") {
-    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  try {
+    await ensureCommunitySeed();
+    const post = await prisma.communityPost.findUnique({
+      where: { id },
+      include: { images: true, comments: true }
+    });
+    if (!post || post.moderationStatus === "blocked" || post.moderationStatus === "rejected") {
+      return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, item: toPost(post), source: "database" });
+  } catch {
+    console.warn("[api/posts/:id] database unavailable, using mock post");
+    const post = mockPosts.find((item) => item.id === id);
+    if (!post) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    return NextResponse.json({ ok: true, item: post, source: "mock" });
   }
-  return NextResponse.json({ ok: true, item: toPost(post) });
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {

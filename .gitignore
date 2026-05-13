@@ -17,4 +17,8 @@ pnpm-debug.log*
 *.tsbuildinfo
 .DS_Store
 
+# Runtime uploaded files. Keep checked-in lightweight demo SVGs.
+public/uploads/posts/*
+!public/uploads/posts/*.svg
+
 /src/generated/prisma
