@@ -1,8 +1,21 @@
+"use client";
+
 import { ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
 import { adminRules } from "@/data/admin";
+import type { AdminRule } from "@/types/admin";
 
 export function RulesPanel({ limit }: { limit?: number }) {
-  const rules = typeof limit === "number" ? adminRules.slice(0, limit) : adminRules;
+  const [rules, setRules] = useState<AdminRule[]>(adminRules);
+
+  useEffect(() => {
+    fetch("/api/admin/rules", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data: { items?: AdminRule[] }) => setRules(data.items ?? []))
+      .catch(() => undefined);
+  }, []);
+
+  const visibleRules = typeof limit === "number" ? rules.slice(0, limit) : rules;
 
   return (
     <section className="rounded-lg border border-line bg-white p-4 shadow-subtle">
@@ -11,7 +24,7 @@ export function RulesPanel({ limit }: { limit?: number }) {
         <h2 className="font-black">风控规则中心</h2>
       </div>
       <div className="mt-4 space-y-2">
-        {rules.map((rule) => (
+        {visibleRules.map((rule) => (
           <article key={rule.id} className="rounded-lg border border-line p-3">
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-black">{rule.name}</div>

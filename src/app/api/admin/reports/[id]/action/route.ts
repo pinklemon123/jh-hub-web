@@ -10,6 +10,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (action === "ignore") {
     const item = await prisma.report.update({ where: { id }, data: { status: "ignored" } });
+    await writeAuditLog("忽略举报", report.id, report.reason);
     return NextResponse.json({ ok: true, item });
   }
 
@@ -28,16 +29,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       });
     }
     const item = await prisma.report.update({ where: { id }, data: { status: "reviewing" } });
+    await writeAuditLog("警告举报对象", report.id, report.reason);
     return NextResponse.json({ ok: true, item });
   }
 
   if (action === "resolve") {
     await blockReportedTarget(report.targetType, report.targetId);
     const item = await prisma.report.update({ where: { id }, data: { status: "resolved" } });
+    await writeAuditLog("处理举报并拦截", report.id, report.reason);
     return NextResponse.json({ ok: true, item });
   }
 
   return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
+}
+
+async function writeAuditLog(action: string, target: string, reason: string) {
+  await prisma.adminAuditLog.create({
+    data: {
+      admin: "admin01",
+      action,
+      target,
+      reason: reason.slice(0, 240)
+    }
+  });
 }
 
 async function findAccusedUser(targetType: string, targetId: string, accusedName: string) {

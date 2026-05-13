@@ -34,6 +34,7 @@ export async function POST(request: Request) {
         messageType: "warning"
       }
     });
+    await writeAuditLog(action, `${type}:${id}`, target.content);
     return NextResponse.json({ ok: true, item: await toQueueItem(type, id) });
   }
 
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
         messageType: "warning"
       }
     });
+    await writeAuditLog(action, `${type}:${id}`, target.content);
     return NextResponse.json({ ok: true, item: await toQueueItem(type, id) });
   }
 
@@ -59,7 +61,28 @@ export async function POST(request: Request) {
   if (!moderationStatus) return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
 
   await updateTargetStatus(type, id, moderationStatus, note);
+  await writeAuditLog(action, `${type}:${id}`, note || target.content);
   return NextResponse.json({ ok: true, item: await toQueueItem(type, id) });
+}
+
+async function writeAuditLog(action: string, target: string, reason: string) {
+  await prisma.adminAuditLog.create({
+    data: {
+      admin: "admin01",
+      action: actionLabel(action),
+      target,
+      reason: reason.slice(0, 240)
+    }
+  });
+}
+
+function actionLabel(action: string) {
+  if (action === "approve") return "通过内容";
+  if (action === "block") return "拦截内容";
+  if (action === "reject") return "删除/隐藏内容";
+  if (action === "warn") return "警告用户";
+  if (action === "mute") return "禁言用户";
+  return action;
 }
 
 async function findTarget(type: AdminContentType, id: string) {

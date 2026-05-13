@@ -21,6 +21,13 @@ export function MessageCenter() {
   const systemConversation = conversations.find((conversation) => conversation.kind === "system");
 
   useEffect(() => {
+    fetch("/api/messages", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data: { items?: Message[] }) => {
+        if (data.items) setLocalMessages(data.items);
+      })
+      .catch(() => undefined);
+
     fetch("/api/system-messages")
       .then((response) => response.json())
       .then((data: { items?: Array<{ id: string; title: string; body: string; createdAt: string }> }) => {
@@ -58,7 +65,7 @@ export function MessageCenter() {
     [adminMessages, localMessages]
   );
 
-  function sendMessage() {
+  async function sendMessage() {
     const trimmed = draft.trim();
     if (!trimmed) return;
     const moderation = moderateContent(trimmed);
@@ -67,17 +74,20 @@ export function MessageCenter() {
       return;
     }
 
+    const response = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId: activeConversation.id, senderId: "u_001", content: trimmed })
+    });
+    const data = (await response.json().catch(() => ({}))) as { item?: Message; moderation?: { message: string } };
+
+    if (!response.ok) {
+      setModerationNotice(data.moderation?.message ?? "消息发送失败，可能未通过风控或数据库不可用。");
+      return;
+    }
+
     setModerationNotice("");
-    setLocalMessages((current) => [
-      ...current,
-      {
-        id: `local_${Date.now()}`,
-        conversationId: activeConversation.id,
-        senderId: "u_001",
-        content: trimmed,
-        time: "刚刚"
-      }
-    ]);
+    if (data.item) setLocalMessages((current) => [...current, data.item!]);
     setDraft("");
   }
 

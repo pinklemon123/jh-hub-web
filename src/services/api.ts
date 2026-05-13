@@ -32,8 +32,7 @@ export const api = {
     return getJson(endpoints.user(id), users.find((user) => user.id === id) ?? users[1]);
   },
   async getTeams() {
-    await delay();
-    return teams;
+    return getJson(endpoints.teams, teams);
   },
   async getNotifications() {
     await delay();
@@ -44,28 +43,23 @@ export const api = {
     return conversations;
   },
   async getMessages() {
-    await delay();
-    return messages;
+    return getJson(endpoints.messages, messages);
   },
   async getSidebar() {
     await delay();
     return { hotTags, announcements, users, teams };
   },
   async getAdminOverview() {
-    await delay();
-    return adminOverview;
+    return getJson(endpoints.adminOverview, adminOverview);
   },
   async getAdminQueue() {
-    await delay();
-    return adminQueue;
+    return getJson(endpoints.adminQueue, adminQueue);
   },
   async getAdminReports() {
-    await delay();
-    return adminReports;
+    return getJson(endpoints.adminReports, adminReports);
   },
   async getAdminUserRisks() {
-    await delay();
-    return adminUserRisks;
+    return getJson(endpoints.adminUsers, adminUserRisks);
   }
 };
 
@@ -81,6 +75,7 @@ export const endpoints = {
   teamApply: "/api/team/apply",
   notifications: "/api/notifications",
   conversations: "/api/conversations",
+  teams: "/api/teams",
   adminOverview: "/api/admin/overview",
   adminQueue: "/api/admin/moderation",
   adminReports: "/api/admin/reports",

@@ -13,24 +13,32 @@ export function CommentThread({ postId, initialComments }: { postId: string; ini
 
   const sortedComments = useMemo(() => comments, [comments]);
 
-  function submitComment() {
+  async function submitComment() {
     const trimmed = content.trim();
     if (!trimmed) return;
 
-    setComments((current) => [
-      ...current,
-      {
-        id: `local_${Date.now()}`,
-        postId,
-        authorId: "u_001",
-        author: "镜湖大懒猫",
-        authorAvatar: "林",
-        content: trimmed,
-        time: "刚刚",
-        replyTo: replyTo?.author,
-        mine: true
-      }
-    ]);
+    const fallbackComment: Comment = {
+      id: `local_${Date.now()}`,
+      postId,
+      authorId: "u_001",
+      author: "镜湖大懒猫",
+      authorAvatar: "林",
+      content: trimmed,
+      time: "刚刚",
+      replyTo: replyTo?.author,
+      mine: true
+    };
+
+    const response = await fetch(`/api/posts/${postId}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ authorId: "u_001", content: trimmed, replyTo: replyTo?.author })
+    });
+    const data = (await response.json().catch(() => ({}))) as { item?: Comment };
+
+    if (response.ok) {
+      setComments((current) => [...current, data.item ?? fallbackComment]);
+    }
     setContent("");
     setReplyTo(null);
   }

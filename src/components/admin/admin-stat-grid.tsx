@@ -1,19 +1,34 @@
-import { Bell, Flag, Gavel, ShieldCheck, Siren, Users } from "lucide-react";
-import { adminOverview } from "@/data/admin";
+"use client";
 
-const statCards = [
-  { label: "今日新增用户", value: adminOverview.newUsersToday, icon: Users },
-  { label: "今日发帖", value: adminOverview.postsToday, icon: Bell },
-  { label: "举报待处理", value: adminOverview.reportCount, icon: Flag },
-  { label: "风险内容", value: adminOverview.riskyContent, icon: Siren },
-  { label: "待人工审核", value: adminOverview.pendingReview, icon: Gavel },
-  { label: "自动拦截", value: adminOverview.blockedContent, icon: ShieldCheck }
-];
+import { Bell, Flag, Gavel, ShieldCheck, Siren, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { adminOverview } from "@/data/admin";
+import type { AdminOverview } from "@/types/admin";
+
+const statDefs = [
+  { label: "今日新增用户", key: "newUsersToday", icon: Users },
+  { label: "今日发帖", key: "postsToday", icon: Bell },
+  { label: "举报待处理", key: "reportCount", icon: Flag },
+  { label: "风险内容", key: "riskyContent", icon: Siren },
+  { label: "待人工审核", key: "pendingReview", icon: Gavel },
+  { label: "自动拦截", key: "blockedContent", icon: ShieldCheck }
+] as const;
 
 export function AdminStatGrid() {
+  const [overview, setOverview] = useState<AdminOverview>(adminOverview);
+
+  useEffect(() => {
+    fetch("/api/admin/overview", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data: { item?: AdminOverview }) => {
+        if (data.item) setOverview(data.item);
+      })
+      .catch(() => undefined);
+  }, []);
+
   return (
     <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-      {statCards.map((stat) => {
+      {statDefs.map((stat) => {
         const Icon = stat.icon;
 
         return (
@@ -22,7 +37,7 @@ export function AdminStatGrid() {
               <span className="text-xs font-bold text-neutral-500">{stat.label}</span>
               <Icon size={16} className="text-brand-600" />
             </div>
-            <div className="mt-4 text-3xl font-black">{stat.value}</div>
+            <div className="mt-4 text-3xl font-black">{overview[stat.key]}</div>
           </article>
         );
       })}

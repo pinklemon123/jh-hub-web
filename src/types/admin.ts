@@ -60,3 +60,31 @@ export interface AdminUserRisk {
   tags: string[];
   lastActive: string;
 }
+
+export interface AdminOverview {
+  newUsersToday: number;
+  postsToday: number;
+  activeUsers: number;
+  reportCount: number;
+  riskyContent: number;
+  pendingReview: number;
+  blockedContent: number;
+  mutedUsers: number;
+}
+
+export interface AdminRule {
+  id: string;
+  name: string;
+  trigger: string;
+  action: string;
+  enabled: boolean;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  admin: string;
+  action: string;
+  target: string;
+  reason: string;
+  createdAt: string;
+}

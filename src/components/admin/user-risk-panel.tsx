@@ -1,8 +1,21 @@
+"use client";
+
 import { UserCog } from "lucide-react";
+import { useEffect, useState } from "react";
 import { adminUserRisks } from "@/data/admin";
+import type { AdminUserRisk } from "@/types/admin";
 
 export function UserRiskPanel({ limit }: { limit?: number }) {
-  const users = adminUserRisks
+  const [users, setUsers] = useState<AdminUserRisk[]>(adminUserRisks);
+
+  useEffect(() => {
+    fetch("/api/admin/users", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data: { items?: AdminUserRisk[] }) => setUsers(data.items ?? []))
+      .catch(() => undefined);
+  }, []);
+
+  const visibleUsers = users
     .slice()
     .sort((a, b) => b.riskScore - a.riskScore)
     .slice(0, limit);
@@ -14,7 +27,7 @@ export function UserRiskPanel({ limit }: { limit?: number }) {
         <h2 className="font-black">用户风险</h2>
       </div>
       <div className="mt-4 space-y-3">
-        {users.map((user) => (
+        {visibleUsers.map((user) => (
           <article key={user.id} className="flex items-center gap-3 rounded-lg border border-line p-3">
             <div className="grid size-9 place-items-center rounded-full bg-brand-600 text-sm font-black text-white">
               {user.name.slice(0, 1)}

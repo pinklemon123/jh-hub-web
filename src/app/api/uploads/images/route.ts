@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,16 @@ export async function POST(request: Request) {
     const bytes = Buffer.from(await file.arrayBuffer());
     const filename = `${Date.now()}-${crypto.randomUUID()}${ext}`;
     await writeFile(path.join(uploadDir, filename), bytes);
-    urls.push(`/uploads/posts/${filename}`);
+    const url = `/uploads/posts/${filename}`;
+    await prisma.uploadedAsset.create({
+      data: {
+        url,
+        mimeType: file.type,
+        size: file.size,
+        scope: "post"
+      }
+    });
+    urls.push(url);
   }
 
   return NextResponse.json({ ok: true, urls });

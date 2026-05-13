@@ -54,6 +54,40 @@ model SystemMessage {
   @@map("system_messages")
 }
 
+model AdminAuditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  admin     String
+  action    String
+  target    String
+  reason    String   @default("")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("admin_audit_logs")
+}
+
+model ModerationRule {
+  id        String   @id
+  name      String
+  trigger   String
+  action    String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("moderation_rules")
+}
+
+model UploadedAsset {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  url       String
+  mimeType  String   @map("mime_type")
+  size      Int
+  scope     String   @default("post")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("uploaded_assets")
+}
+
 model HubUser {
   id        String   @id
   name      String
@@ -105,6 +139,24 @@ model CommunityPost {
   comments PostComment[]
 
   @@map("community_posts")
+}
+
+model TeamProject {
+  id           String   @id
+  title        String
+  summary      String
+  leaderId     String   @map("leader_id")
+  leader       String
+  status       String
+  currentCount Int      @default(1) @map("current_count")
+  maxCount     Int      @default(5) @map("max_count")
+  missingRoles String[] @default([]) @map("missing_roles")
+  tags         String[] @default([])
+  stage        String   @default("")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("team_projects")
 }
 
 model PostImage {

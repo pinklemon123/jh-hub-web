@@ -1,10 +1,24 @@
+"use client";
+
 import { Activity } from "lucide-react";
+import { useEffect, useState } from "react";
 import { adminAuditLogs } from "@/data/admin";
+import type { AdminAuditLog } from "@/types/admin";
 
-export type AuditLogItem = (typeof adminAuditLogs)[number];
+export type AuditLogItem = AdminAuditLog;
 
-export function AuditLogPanel({ logs = adminAuditLogs, limit }: { logs?: AuditLogItem[]; limit?: number }) {
-  const items = typeof limit === "number" ? logs.slice(0, limit) : logs;
+export function AuditLogPanel({ logs, limit }: { logs?: AuditLogItem[]; limit?: number }) {
+  const [dbLogs, setDbLogs] = useState<AuditLogItem[]>(logs ?? adminAuditLogs);
+
+  useEffect(() => {
+    if (logs) return;
+    fetch("/api/admin/logs", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data: { items?: AuditLogItem[] }) => setDbLogs(data.items ?? []))
+      .catch(() => undefined);
+  }, [logs]);
+
+  const items = typeof limit === "number" ? dbLogs.slice(0, limit) : dbLogs;
 
   return (
     <section className="rounded-lg border border-line bg-white p-4 shadow-subtle">
