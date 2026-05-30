@@ -15,9 +15,9 @@ export async function GET() {
     prisma.communityPost.count({ where: { createdAt: { gte: today } } }),
     prisma.hubUser.count({ where: { online: true } }),
     prisma.report.count({ where: { status: "open" } }),
-    prisma.communityPost.findMany({ select: { title: true, summary: true, content: true, moderationStatus: true } }),
-    prisma.postComment.findMany({ select: { content: true, moderationStatus: true } }),
-    prisma.directMessage.findMany({ select: { content: true, moderationStatus: true } }),
+    prisma.communityPost.findMany({ where: { moderationStatus: { notIn: ["deleted", "rejected"] } }, select: { title: true, summary: true, content: true, moderationStatus: true } }),
+    prisma.postComment.findMany({ where: { moderationStatus: { notIn: ["deleted", "rejected"] } }, select: { content: true, moderationStatus: true } }),
+    prisma.directMessage.findMany({ where: { moderationStatus: { notIn: ["deleted", "rejected"] } }, select: { content: true, moderationStatus: true } }),
     prisma.hubUser.count({ where: { status: { in: ["muted", "watchlist"] } } })
   ]);
 

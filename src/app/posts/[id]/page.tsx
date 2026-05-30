@@ -31,7 +31,9 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
       include: { images: true, comments: true }
     });
 
-    if (row && row.moderationStatus !== "blocked" && row.moderationStatus !== "rejected") {
+    if (row && row.moderationStatus !== "approved") {
+      post = null;
+    } else if (row) {
       post = toPost(row);
       const dbAuthor = await prisma.hubUser.findUnique({ where: { id: post.authorId } });
       allUsers = (await prisma.hubUser.findMany({ orderBy: { createdAt: "asc" } })).map(toUser);
@@ -46,13 +48,13 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
         : null;
       postComments = (
         await prisma.postComment.findMany({
-          where: { postId: post.id, moderationStatus: { notIn: ["blocked", "rejected"] } },
+          where: { postId: post.id, moderationStatus: "approved" },
           orderBy: { createdAt: "asc" }
         })
       ).map(toComment);
       relatedPosts = (
         await prisma.communityPost.findMany({
-          where: { id: { not: post.id }, type: post.type, moderationStatus: { notIn: ["blocked", "rejected"] } },
+          where: { id: { not: post.id }, type: post.type, moderationStatus: "approved" },
           include: { images: true, comments: true },
           take: 2
         })

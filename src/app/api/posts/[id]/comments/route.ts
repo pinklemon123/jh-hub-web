@@ -10,7 +10,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   try {
     await ensureCommunitySeed();
     const rows = await prisma.postComment.findMany({
-      where: { postId: id, moderationStatus: { notIn: ["blocked", "rejected"] } },
+      where: { postId: id, moderationStatus: "approved" },
       orderBy: { createdAt: "asc" }
     });
     return NextResponse.json({ ok: true, items: rows.map(toComment), source: "database" });

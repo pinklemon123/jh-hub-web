@@ -297,11 +297,12 @@ export function toComment(row: {
   };
 }
 
-export function toMessage(row: { id: string; conversationId: string; senderId: string; content: string; createdAt: Date }): Message {
+export function toMessage(row: { id: string; conversationId: string; senderId: string; receiverId?: string | null; content: string; createdAt: Date }): Message {
   return {
     id: row.id,
     conversationId: row.conversationId,
     senderId: row.senderId,
+    receiverId: row.receiverId,
     content: row.content,
     time: formatDate(row.createdAt)
   };

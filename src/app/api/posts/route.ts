@@ -2,19 +2,29 @@ import { NextResponse } from "next/server";
 import { posts as mockPosts } from "@/data/mock";
 import { ensureCommunitySeed, toPost } from "@/lib/community-db";
 import { moderateContent } from "@/lib/moderation";
+import { clearPostsCache, getCachedPosts, setCachedPosts } from "@/lib/posts-cache";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
+    const cachedPosts = await getCachedPosts();
+    if (cachedPosts) {
+      console.log("[api/posts] 走 Redis 缓存");
+      return NextResponse.json({ ok: true, items: cachedPosts, source: "redis" });
+    }
+
+    console.log("[api/posts] 走 PostgreSQL 数据库");
     await ensureCommunitySeed();
     const rows = await prisma.communityPost.findMany({
-      where: { moderationStatus: { notIn: ["blocked", "rejected"] } },
+      where: { moderationStatus: "approved" },
       include: { images: true, comments: true },
       orderBy: { createdAt: "desc" }
     });
-    return NextResponse.json({ ok: true, items: rows.map(toPost), source: "database" });
-  } catch {
-    console.warn("[api/posts] database unavailable, using mock posts");
+    const items = rows.map(toPost);
+    await setCachedPosts(items);
+    return NextResponse.json({ ok: true, items, source: "database" });
+  } catch (error) {
+    console.warn("[api/posts] database unavailable, using mock posts", error);
     return NextResponse.json({ ok: true, items: mockPosts, source: "mock" });
   }
 }
@@ -66,9 +76,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "content_blocked", item: toPost(post), moderation, source: "database" }, { status: 400 });
     }
 
+    await clearPostsCache();
     return NextResponse.json({ ok: true, item: toPost(post), source: "database" });
-  } catch {
-    console.warn("[api/posts] database unavailable, post was not saved");
+  } catch (error) {
+    console.warn("[api/posts] database unavailable, post was not saved", error);
     return NextResponse.json({ ok: false, error: "database_unavailable", message: "数据库未连接，发帖没有保存到审核后台。" }, { status: 503 });
   }
 }

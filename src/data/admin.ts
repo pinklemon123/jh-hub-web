@@ -124,6 +124,7 @@ export const adminUserRisks: AdminUserRisk[] = users
       id: user.id,
       name: user.name,
       college: user.college,
+      role: index === 1 ? "COLLEGE_ADMIN" : "USER",
       status: riskScore >= 70 ? "watchlist" : "normal",
       riskScore,
       violationCount: authoredItems.filter((item) => item.moderation.decision !== "allow").length,
