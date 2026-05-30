@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { ImageUploader } from "@/components/image-uploader";
 import { Button, Card, Tag } from "@/components/ui";
 
@@ -12,7 +11,6 @@ const postTypes = [
 ];
 
 export function NewPostForm() {
-  const router = useRouter();
   const [title, setTitle] = useState("");
   const [type, setType] = useState("TECH");
   const [content, setContent] = useState("");
@@ -48,7 +46,11 @@ export function NewPostForm() {
     }
     if (data.item?.id) {
       setMessage("已提交审核，管理员通过后会在内容流展示。");
-      router.push("/admin/content");
+      setTitle("");
+      setContent("");
+      setTags("");
+      setRequiredSkills("");
+      setImageUrls([]);
     }
   }
 

@@ -2,6 +2,8 @@ import { posts as mockPosts, teams as mockTeams, users as mockUsers } from "@/da
 import { ensureCommunitySeed, toPost, toTeamProject, toUser } from "@/lib/community-db";
 import { prisma } from "@/lib/prisma";
 import type { Post, TeamProject, User } from "@/types";
+import { existsSync } from "node:fs";
+import path from "node:path";
 
 export interface OfficialFeedItem {
   id: string;
@@ -52,7 +54,7 @@ export async function getDiscoverData(): Promise<DiscoverData> {
           title: item.title,
           body: item.summary,
           type: "学校官号" as const,
-          imageUrl: item.coverUrl,
+          imageUrl: validImageUrl(item.coverUrl),
           source: "column" as const
         })),
         ...announcementRows.map((item) => ({
@@ -60,7 +62,7 @@ export async function getDiscoverData(): Promise<DiscoverData> {
           title: item.title,
           body: item.body,
           type: "校园公告" as const,
-          imageUrl: item.imageUrl,
+          imageUrl: validImageUrl(item.imageUrl),
           source: "announcement" as const
         }))
       ],
@@ -87,4 +89,11 @@ export async function getDiscoverData(): Promise<DiscoverData> {
       posts: mockPosts
     };
   }
+}
+
+function validImageUrl(value: string | null) {
+  if (!value) return null;
+  if (value.startsWith("data:image/")) return value;
+  if (!value.startsWith("/uploads/")) return value;
+  return existsSync(path.join(process.cwd(), "public", value)) ? value : null;
 }

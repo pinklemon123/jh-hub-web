@@ -1,8 +1,9 @@
 "use client";
 
+import { MessageCircle } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { User } from "@/types";
-import Link from "next/link";
 import { Avatar, Card, Tag } from "./ui";
 
 export function ProfilePanel({ user, showEdit }: { user: User; showEdit?: boolean }) {
@@ -15,8 +16,8 @@ export function ProfilePanel({ user, showEdit }: { user: User; showEdit?: boolea
       const map = JSON.parse(raw || "{}");
       const edited = map[user.id];
       if (edited) setDisplayUser({ ...user, ...edited });
-    } catch (e) {
-      // ignore
+    } catch {
+      // Local edits are optional.
     }
   }, [user]);
 
@@ -28,16 +29,23 @@ export function ProfilePanel({ user, showEdit }: { user: User; showEdit?: boolea
         <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-black">{displayUser.name}</h1>
-            <p className="mt-1 text-sm text-neutral-500">{displayUser.college} · {displayUser.grade} · {displayUser.direction}</p>
+            <p className="mt-1 text-sm text-neutral-500">
+              {displayUser.college} · {displayUser.grade} · {displayUser.direction}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-bold text-brand-700">{displayUser.status}</span>
-            {showEdit && (
-              <Link
-                href={`/profile/${displayUser.id}/edit`}
-                className="rounded-md bg-black px-3 py-1 text-sm font-semibold text-white"
-              >
+            {showEdit ? (
+              <Link href={`/profile/${displayUser.id}/edit`} className="rounded-md bg-black px-3 py-1 text-sm font-semibold text-white">
                 编辑资料
+              </Link>
+            ) : (
+              <Link
+                href={`/messages?targetId=${displayUser.id}`}
+                className="inline-flex h-8 items-center gap-2 rounded-md bg-black px-3 text-sm font-semibold text-white"
+              >
+                <MessageCircle size={15} />
+                私信
               </Link>
             )}
           </div>

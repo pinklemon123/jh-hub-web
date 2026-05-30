@@ -17,15 +17,21 @@ interface PreviewImage {
 
 export function ImageUploader({ onUploadedChange }: { onUploadedChange?: (urls: string[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const imagesRef = useRef<PreviewImage[]>([]);
   const [images, setImages] = useState<PreviewImage[]>([]);
   const [error, setError] = useState("");
   const [compressing, setCompressing] = useState(false);
 
   useEffect(() => {
+    imagesRef.current = images;
+    onUploadedChange?.(images.flatMap((image) => (image.remoteUrl ? [image.remoteUrl] : [])));
+  }, [images, onUploadedChange]);
+
+  useEffect(() => {
     return () => {
-      images.forEach((image) => URL.revokeObjectURL(image.url));
+      imagesRef.current.forEach((image) => URL.revokeObjectURL(image.url));
     };
-  }, [images]);
+  }, []);
 
   async function handleFiles(files: FileList | null) {
     if (!files) return;
@@ -59,7 +65,6 @@ export function ImageUploader({ onUploadedChange }: { onUploadedChange?: (urls: 
 
       setImages((current) => {
         const merged = [...current, ...next].slice(0, MAX_IMAGES);
-        onUploadedChange?.(merged.flatMap((image) => (image.remoteUrl ? [image.remoteUrl] : [])));
         if (current.length + next.length > MAX_IMAGES) {
           setError("第一版最多上传 4 张图片。");
         }
@@ -77,7 +82,6 @@ export function ImageUploader({ onUploadedChange }: { onUploadedChange?: (urls: 
       const target = current.find((image) => image.id === id);
       if (target) URL.revokeObjectURL(target.url);
       const next = current.filter((image) => image.id !== id);
-      onUploadedChange?.(next.flatMap((image) => (image.remoteUrl ? [image.remoteUrl] : [])));
       return next;
     });
   }

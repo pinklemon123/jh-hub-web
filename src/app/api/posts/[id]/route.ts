@@ -11,7 +11,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       where: { id },
       include: { images: true, comments: true }
     });
-    if (!post || post.moderationStatus === "blocked" || post.moderationStatus === "rejected") {
+    if (!post || post.moderationStatus !== "approved") {
       return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
     }
     return NextResponse.json({ ok: true, item: toPost(post), source: "database" });
@@ -45,6 +45,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   await ensureCommunitySeed();
   const { id } = await params;
-  await prisma.communityPost.delete({ where: { id } });
+  await prisma.communityPost.update({
+    where: { id },
+    data: {
+      moderationStatus: "deleted",
+      reviewedAt: new Date(),
+      reviewNote: "内容已删除并隐藏。"
+    }
+  });
   return NextResponse.json({ ok: true });
 }

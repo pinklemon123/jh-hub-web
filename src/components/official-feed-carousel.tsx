@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 export function OfficialFeedCarousel({ items }: { items: OfficialFeedItem[] }) {
   const slides = useMemo(() => (items.length > 0 ? items : []), [items]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const activeItem = slides[activeIndex];
 
   useEffect(() => {
@@ -33,9 +34,14 @@ export function OfficialFeedCarousel({ items }: { items: OfficialFeedItem[] }) {
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-neutral-950 text-white">
       <div className="relative min-h-[320px]">
-        {activeItem.imageUrl ? (
+        {activeItem.imageUrl && !failedImages.has(activeItem.id) ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={activeItem.imageUrl} alt={activeItem.title} className="absolute inset-0 h-full w-full object-cover" />
+          <img
+            src={activeItem.imageUrl}
+            alt={activeItem.title}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={() => setFailedImages((current) => new Set(current).add(activeItem.id))}
+          />
         ) : (
           <div className="absolute inset-0 bg-[linear-gradient(135deg,#6E1F28,#221113_70%)]" />
         )}

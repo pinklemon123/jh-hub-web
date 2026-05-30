@@ -76,7 +76,11 @@ export function ModerationWorkspace({ compact = false }: { compact?: boolean }) 
       body: JSON.stringify({ id: item.id, type: item.type, action })
     });
     const data = (await response.json()) as { item?: AdminQueueItem | null };
-    if (data.item) {
+    if (action === "reject") {
+      setSourceItems((current) => current.filter((currentItem) => currentItem.id !== item.id || currentItem.type !== item.type));
+      setSelectedItem(null);
+    }
+    if (action !== "reject" && data.item) {
       setSourceItems((current) => current.map((currentItem) => (currentItem.id === item.id && currentItem.type === item.type ? data.item! : currentItem)));
       setSelectedItem(data.item);
     }

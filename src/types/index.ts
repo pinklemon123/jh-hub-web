@@ -102,6 +102,7 @@ export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
+  receiverId?: string | null;
   content: string;
   time: string;
 }

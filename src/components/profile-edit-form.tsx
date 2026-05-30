@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { colleges, getCollegeKeyByName } from "@/data/colleges";
 import type { User } from "@/types";
 import { Button, Card } from "./ui";
 
 export default function ProfileEditForm({ initialUser }: { initialUser: User }) {
   const router = useRouter();
   const [name, setName] = useState(initialUser.name);
+  const [college, setCollege] = useState(getCollegeKeyByName(initialUser.college) ?? "");
   const [bio, setBio] = useState(initialUser.bio);
   const [contact, setContact] = useState(initialUser.contact);
   const [skills, setSkills] = useState(initialUser.skills.join(", "));
@@ -20,6 +22,7 @@ export default function ProfileEditForm({ initialUser }: { initialUser: User }) 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name,
+        college: colleges.find((item) => item.key === college)?.label ?? initialUser.college,
         bio,
         contact,
         skills: splitList(skills)
@@ -35,6 +38,17 @@ export default function ProfileEditForm({ initialUser }: { initialUser: User }) 
         <div>
           <label className="block text-sm font-semibold text-neutral-600">昵称</label>
           <input value={name} onChange={(event) => setName(event.target.value)} className="mt-1 w-full rounded border px-3 py-2" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-neutral-600">学院</label>
+          <select value={college} onChange={(event) => setCollege(event.target.value)} className="mt-1 w-full rounded border px-3 py-2">
+            <option value="">请选择学院</option>
+            {colleges.map((item) => (
+              <option key={item.key} value={item.key}>
+                {item.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-semibold text-neutral-600">简介</label>
@@ -63,7 +77,7 @@ export default function ProfileEditForm({ initialUser }: { initialUser: User }) 
 
 function splitList(value: string) {
   return value
-    .split(/[,，、\s]+/)
+    .split(/[,，\s]+/)
     .map((item) => item.trim())
     .filter(Boolean);
 }

@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import { ensureCommunitySeed } from "@/lib/community-db";
 import { moderateContent } from "@/lib/moderation";
 import { prisma } from "@/lib/prisma";
-import type { AdminUserRisk } from "@/types/admin";
+import type { AdminUserRisk, UserRole } from "@/types/admin";
+
+const userRoles = new Map<string, UserRole>([
+  ["u_001", "USER"],
+  ["u_002", "COLLEGE_ADMIN"],
+  ["u_003", "USER"],
+  ["u_004", "USER"]
+]);
 
 export async function GET() {
   await ensureCommunitySeed();
@@ -32,12 +39,13 @@ export async function GET() {
         ...authoredPosts.map((post) => post.moderationStatus),
         ...authoredComments.map((comment) => comment.moderationStatus),
         ...authoredMessages.map((message) => message.moderationStatus)
-      ].filter((status) => status === "blocked" || status === "rejected").length;
+      ].filter((status) => status === "blocked" || status === "rejected" || status === "deleted").length;
 
       return {
         id: user.id,
         name: user.name,
         college: user.college,
+        role: userRoles.get(user.id) ?? "USER",
         status: user.status === "muted" || user.status === "banned" || user.status === "watchlist" ? user.status : riskScore >= 70 ? "watchlist" : "normal",
         riskScore,
         violationCount,
@@ -53,4 +61,18 @@ export async function GET() {
     .sort((a, b) => b.riskScore - a.riskScore);
 
   return NextResponse.json({ ok: true, items });
+}
+
+export async function PATCH(request: Request) {
+  const body = await request.json();
+  const userId = String(body.userId ?? "");
+  const role = String(body.role ?? "USER") as UserRole;
+
+  if (!userId) return NextResponse.json({ ok: false, error: "missing_user_id" }, { status: 400 });
+  if (!["USER", "COLLEGE_ADMIN", "SYSTEM_ADMIN"].includes(role)) {
+    return NextResponse.json({ ok: false, error: "invalid_role" }, { status: 400 });
+  }
+
+  userRoles.set(userId, role);
+  return NextResponse.json({ ok: true, item: { userId, role } });
 }

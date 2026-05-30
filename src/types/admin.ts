@@ -1,9 +1,10 @@
 export type AdminContentType = "post" | "comment" | "message" | "image";
 export type ModerationLevel = "normal" | "suspicious" | "high" | "blocked";
 export type ModerationDecision = "allow" | "review" | "block";
-export type ContentModerationStatus = "pending" | "approved" | "rejected" | "blocked";
+export type ContentModerationStatus = "pending" | "approved" | "rejected" | "blocked" | "deleted";
 export type ReportStatus = "open" | "reviewing" | "resolved" | "ignored";
 export type UserRiskStatus = "normal" | "muted" | "banned" | "watchlist";
+export type UserRole = "USER" | "COLLEGE_ADMIN" | "SYSTEM_ADMIN";
 
 export interface ModerationHit {
   label: string;
@@ -53,6 +54,7 @@ export interface AdminUserRisk {
   id: string;
   name: string;
   college: string;
+  role: UserRole;
   status: UserRiskStatus;
   riskScore: number;
   violationCount: number;

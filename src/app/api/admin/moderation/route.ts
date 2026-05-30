@@ -11,17 +11,18 @@ function defaultStatus(decision: ModerationDecision): ContentModerationStatus {
 }
 
 function resolvedStatus(rowStatus: string, moderation: ModerationResult): ContentModerationStatus {
-  if (rowStatus === "approved" || rowStatus === "rejected" || rowStatus === "blocked") return rowStatus;
+  if (rowStatus === "approved" || rowStatus === "rejected" || rowStatus === "blocked" || rowStatus === "deleted") return rowStatus;
   if (moderation.decision === "block") return "blocked";
   return "pending";
 }
 
 export async function GET() {
   await ensureCommunitySeed();
+  const visibleModerationStatus = { notIn: ["deleted", "rejected"] };
   const [posts, comments, messages, reports] = await Promise.all([
-    prisma.communityPost.findMany({ orderBy: { createdAt: "desc" } }),
-    prisma.postComment.findMany({ orderBy: { createdAt: "desc" } }),
-    prisma.directMessage.findMany({ orderBy: { createdAt: "desc" }, include: { sender: true } }),
+    prisma.communityPost.findMany({ where: { moderationStatus: visibleModerationStatus }, orderBy: { createdAt: "desc" } }),
+    prisma.postComment.findMany({ where: { moderationStatus: visibleModerationStatus }, orderBy: { createdAt: "desc" } }),
+    prisma.directMessage.findMany({ where: { moderationStatus: visibleModerationStatus }, orderBy: { createdAt: "desc" }, include: { sender: true } }),
     prisma.report.findMany()
   ]);
 

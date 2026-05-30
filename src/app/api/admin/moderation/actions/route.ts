@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { moderateContent } from "@/lib/moderation";
+import { clearPostsCache } from "@/lib/posts-cache";
 import { prisma } from "@/lib/prisma";
 import type { AdminContentType, ContentModerationStatus } from "@/types/admin";
 
 const actionStatus: Record<string, ContentModerationStatus | undefined> = {
   approve: "approved",
-  reject: "rejected",
+  reject: "deleted",
   block: "blocked"
 };
 
@@ -113,7 +114,10 @@ async function findTarget(type: AdminContentType, id: string) {
 
 async function updateTargetStatus(type: AdminContentType, id: string, moderationStatus: ContentModerationStatus, note: string) {
   const data = { moderationStatus, reviewedAt: new Date(), reviewNote: note || statusNote(moderationStatus) };
-  if (type === "post") await prisma.communityPost.update({ where: { id }, data });
+  if (type === "post") {
+    await prisma.communityPost.update({ where: { id }, data });
+    await clearPostsCache();
+  }
   if (type === "comment") await prisma.postComment.update({ where: { id }, data });
   if (type === "message") await prisma.directMessage.update({ where: { id }, data });
 }
@@ -121,6 +125,7 @@ async function updateTargetStatus(type: AdminContentType, id: string, moderation
 function statusNote(status: ContentModerationStatus) {
   if (status === "approved") return "管理员已通过内容。";
   if (status === "blocked") return "管理员已拦截内容。";
+  if (status === "deleted") return "管理员已删除并隐藏内容。";
   return "管理员已删除或隐藏内容。";
 }
 

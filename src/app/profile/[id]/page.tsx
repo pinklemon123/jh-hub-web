@@ -14,14 +14,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   const user = toUser(userRow ?? fallback!);
   const userPosts = (
     await prisma.communityPost.findMany({
-      where: { authorId: user.id, moderationStatus: { notIn: ["blocked", "rejected"] } },
+      where: { authorId: user.id, moderationStatus: "approved" },
       include: { images: true, comments: true },
       orderBy: { createdAt: "desc" }
     })
   ).map(toPost);
   const fallbackPosts = (
     await prisma.communityPost.findMany({
-      where: { moderationStatus: { notIn: ["blocked", "rejected"] } },
+      where: { moderationStatus: "approved" },
       include: { images: true, comments: true },
       take: 1
     })
