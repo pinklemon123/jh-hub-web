@@ -1,9 +1,9 @@
+import { userAccess } from "@/lib/user-auth";
 import { NextResponse } from "next/server";
-import { comments as mockComments, users as mockUsers } from "@/data/mock";
+import { comments as mockComments } from "@/data/mock";
 import { ensureCommunitySeed, toComment } from "@/lib/community-db";
 import { moderateContent } from "@/lib/moderation";
 import { prisma } from "@/lib/prisma";
-import type { Comment } from "@/types";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,9 +21,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const sessionUser = await userAccess();
+  if (sessionUser instanceof NextResponse) return sessionUser;
   const { id } = await params;
   const body = await request.json();
-  const authorId = String(body.authorId ?? "u_001");
+  const authorId = sessionUser.id;
   const moderation = moderateContent(String(body.content ?? ""));
   if (moderation.decision === "block") {
     return NextResponse.json({ ok: false, error: "content_blocked", moderation }, { status: 400 });
@@ -45,24 +47,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         moderationStatus: moderation.decision === "allow" ? "approved" : "pending",
         reviewNote: moderation.message,
         replyTo: body.replyTo ? String(body.replyTo) : null,
-        mine: authorId === "u_001"
+        mine: false
       }
     });
     return NextResponse.json({ ok: true, item: toComment(row), source: "database" });
   } catch {
-    console.warn("[api/posts/:id/comments] database unavailable, returning mock-created comment");
-    const author = mockUsers.find((user) => user.id === authorId) ?? mockUsers.find((user) => user.id === "u_001") ?? mockUsers[0];
-    const item: Comment = {
-      id: `cm_${Date.now()}`,
-      postId: id,
-      authorId,
-      author: author.name,
-      authorAvatar: author.avatar,
-      content: String(body.content ?? ""),
-      time: "刚刚",
-      replyTo: body.replyTo ? String(body.replyTo) : undefined,
-      mine: authorId === "u_001"
-    };
-    return NextResponse.json({ ok: true, item, source: "mock" });
+    return NextResponse.json({ ok: false, message: "评论保存失败，请稍后重试。" }, { status: 503 });
   }
 }

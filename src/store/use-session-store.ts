@@ -1,17 +1,16 @@
 "use client";
-
 import { create } from "zustand";
-
+import type { User } from "@/types";
 interface SessionState {
+  user: User | null;
   activeUserId: string;
+  loading: boolean;
   unread: number;
-  setActiveUserId: (id: string) => void;
+  setUser: (user: User | null) => void;
   markAllRead: () => void;
 }
-
 export const useSessionStore = create<SessionState>((set) => ({
-  activeUserId: "u_001",
-  unread: 2,
-  setActiveUserId: (id) => set({ activeUserId: id }),
+  user: null, activeUserId: "", loading: true, unread: 0,
+  setUser: (user) => set({ user, activeUserId: user?.id ?? "", loading: false, unread: 0 }),
   markAllRead: () => set({ unread: 0 })
 }));

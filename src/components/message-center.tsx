@@ -1,15 +1,17 @@
 "use client";
+import { useSessionStore } from "@/store/use-session-store";
 
+import Link from "next/link";
 import { Send } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Avatar, Button, Card } from "@/components/ui";
-import { notifications, users as mockUsers } from "@/data/mock";
+import { users as mockUsers } from "@/data/mock";
 import { moderateContent } from "@/lib/moderation";
 import type { Conversation, Message, User } from "@/types";
 import { ReportButton } from "./report-button";
 
-const currentUserId = "u_001";
+
 const systemConversation: Conversation = {
   id: "c_system",
   target: mockUsers[0],
@@ -21,6 +23,13 @@ const systemConversation: Conversation = {
 };
 
 export function MessageCenter() {
+  const { activeUserId, loading } = useSessionStore();
+  if (loading) return <p role="status">正在加载私信…</p>;
+  if (!activeUserId) return <Link href="/login?next=%2Fmessages">请先登录查看私信</Link>;
+  return <MessageContent key={activeUserId} currentUserId={activeUserId} />;
+}
+
+function MessageContent({ currentUserId }: { currentUserId: string }) {
   const searchParams = useSearchParams();
   const targetId = searchParams.get("targetId");
   const [activeId, setActiveId] = useState("c_system");
@@ -32,6 +41,7 @@ export function MessageCenter() {
   const [adminMessages, setAdminMessages] = useState<Array<{ id: string; title: string; body: string; createdAt: string }>>([]);
 
   useEffect(() => {
+    if (!currentUserId) return;
     fetch("/api/users", { cache: "no-store" })
       .then((response) => response.json())
       .then((data: { items?: User[] }) => {
@@ -53,10 +63,10 @@ export function MessageCenter() {
         setAdminMessages(data.items ?? []);
       })
       .catch(() => undefined);
-  }, []);
+  }, [currentUserId]);
 
   useEffect(() => {
-    if (!targetId || targetId === currentUserId) return;
+    if (!currentUserId || !targetId || targetId === currentUserId) return;
     const target = users.find((user) => user.id === targetId);
     if (!target) return;
     const draftConversationId = directConversationId(currentUserId, targetId);
@@ -78,7 +88,7 @@ export function MessageCenter() {
       setActiveId(draftConversation.id);
       return uniqueConversations([draftConversation, ...current]);
     });
-  }, [targetId, users]);
+  }, [targetId, users, currentUserId]);
 
   const visibleDirectConversations = useMemo(() => uniqueConversations(directConversations), [directConversations]);
   const conversations = [systemConversation, ...visibleDirectConversations];
@@ -91,13 +101,6 @@ export function MessageCenter() {
 
   const systemItems = useMemo(
     () => [
-      ...notifications.map((item) => ({
-        id: item.id,
-        title: item.title,
-        body: item.body,
-        time: item.time,
-        unread: item.unread
-      })),
       ...adminMessages.map((item) => ({
         id: item.id,
         title: item.title,
@@ -126,7 +129,7 @@ export function MessageCenter() {
     const response = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderId: currentUserId, receiverId: activeConversation.target.id, content: trimmed })
+      body: JSON.stringify({ receiverId: activeConversation.target.id, content: trimmed })
     });
     const data = (await response.json().catch(() => ({}))) as { item?: Message; message?: string; moderation?: { message: string } };
 

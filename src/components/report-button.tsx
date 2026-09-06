@@ -20,6 +20,7 @@ export function ReportButton({
   className?: string;
   compact?: boolean;
 }) {
+  const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<(typeof reportReasons)[number]>("广告/引流");
   const [detail, setDetail] = useState("");
@@ -35,6 +36,8 @@ export function ReportButton({
 
   async function submit() {
     setSubmitting(true);
+    setError("");
+    try {
     await submitReport({
       targetType,
       targetId,
@@ -43,8 +46,9 @@ export function ReportButton({
       detail: detail.trim(),
       snapshot
     });
-    setSubmitting(false);
     setSubmitted(true);
+    } catch (error) { setError(error instanceof Error ? error.message : "提交失败。"); }
+    finally { setSubmitting(false); }
   }
 
   return (
@@ -81,6 +85,7 @@ export function ReportButton({
             </div>
 
             <div className="space-y-4 p-5">
+              {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
               {submitted ? (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
                   举报已提交。管理员会在后台看到举报对象、原因、原始内容和处理状态。

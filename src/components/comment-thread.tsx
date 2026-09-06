@@ -1,12 +1,16 @@
 "use client";
 
-import { Reply, Trash2 } from "lucide-react";
+import { Reply } from "lucide-react";
+import { useSessionStore } from "@/store/use-session-store";
 import { useMemo, useState } from "react";
 import type { Comment } from "@/types";
 import { ReportButton } from "./report-button";
 import { Avatar, Button } from "./ui";
 
 export function CommentThread({ postId, initialComments }: { postId: string; initialComments: Comment[] }) {
+  const user = useSessionStore((state) => state.user);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [comments, setComments] = useState(initialComments);
   const [content, setContent] = useState("");
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
@@ -17,30 +21,20 @@ export function CommentThread({ postId, initialComments }: { postId: string; ini
     const trimmed = content.trim();
     if (!trimmed) return;
 
-    const fallbackComment: Comment = {
-      id: `local_${Date.now()}`,
-      postId,
-      authorId: "u_001",
-      author: "镜湖大懒猫",
-      authorAvatar: "林",
-      content: trimmed,
-      time: "刚刚",
-      replyTo: replyTo?.author,
-      mine: true
-    };
-
-    const response = await fetch(`/api/posts/${postId}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ authorId: "u_001", content: trimmed, replyTo: replyTo?.author })
-    });
-    const data = (await response.json().catch(() => ({}))) as { item?: Comment };
-
-    if (response.ok) {
-      setComments((current) => [...current, data.item ?? fallbackComment]);
-    }
-    setContent("");
-    setReplyTo(null);
+    if (!user) { window.location.assign('/login?next=' + encodeURIComponent(window.location.pathname)); return; }
+    if (saving) return;
+    setSaving(true); setError("");
+    try {
+      const response = await fetch(`/api/posts/${postId}/comments`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: trimmed, replyTo: replyTo?.author })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.item) { setError(data.message ?? data.moderation?.message ?? "评论发送失败，请重试。"); return; }
+      setComments((current) => [...current, data.item]);
+      setContent(""); setReplyTo(null);
+    } catch { setError("网络连接失败，请稍后重试。"); }
+    finally { setSaving(false); }
   }
 
   return (
@@ -80,15 +74,7 @@ export function CommentThread({ postId, initialComments }: { postId: string; ini
                   snapshot={comment.content}
                   compact
                 />
-                {comment.mine && (
-                  <button
-                    className="inline-flex items-center gap-1 text-xs font-bold text-neutral-500 hover:text-brand-700"
-                    onClick={() => setComments((current) => current.filter((item) => item.id !== comment.id))}
-                  >
-                    <Trash2 size={14} />
-                    删除
-                  </button>
-                )}
+
               </div>
             </div>
           </article>
@@ -111,7 +97,8 @@ export function CommentThread({ postId, initialComments }: { postId: string; ini
           placeholder="写下你的建议、问题或协作意向"
         />
         <div className="mt-3 flex justify-end">
-          <Button onClick={submitComment}>发送评论</Button>
+          {error && <p role="alert" className="mr-3 text-sm text-red-700">{error}</p>}
+          <Button onClick={submitComment} disabled={saving}>{saving ? "发送中…" : user ? "发送评论" : "登录后评论"}</Button>
         </div>
       </div>
     </section>

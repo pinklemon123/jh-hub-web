@@ -1,3 +1,6 @@
+import { getCurrentUser } from "@/lib/user-auth";
+import { verifyAdminSession } from "@/lib/admin-auth";
+import { cookies } from "next/headers";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
@@ -12,6 +15,9 @@ const allowedTypes = new Map([
 ]);
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  const admin = await verifyAdminSession((await cookies()).get("admin_session")?.value);
+  if (!user && !admin) return NextResponse.json({ ok: false, message: "请先登录。" }, { status: 401 });
   const formData = await request.formData();
   const files = formData.getAll("files").filter((item): item is File => item instanceof File);
   const uploadDir = path.join(process.cwd(), "public", "uploads", "posts");

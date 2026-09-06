@@ -1,3 +1,4 @@
+import { getCurrentUser } from "@/lib/user-auth";
 import { NextResponse } from "next/server";
 import { ensureCommunitySeed, toPost, toTeamProject, toUser } from "@/lib/community-db";
 import { prisma } from "@/lib/prisma";
@@ -5,8 +6,7 @@ import { recommendTeamsForUser, recommendTeammatesForTeams, recommendTechPostsFo
 
 export async function GET(request: Request) {
   await ensureCommunitySeed();
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get("userId") ?? "u_001";
+  const userId = (await getCurrentUser())?.id;
 
   const [userRows, teamRows, postRows] = await Promise.all([
     prisma.hubUser.findMany({ orderBy: { createdAt: "asc" } }),
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const users = userRows.map(toUser);
   const teams = teamRows.map(toTeamProject);
   const posts = postRows.map(toPost);
-  const currentUser = users.find((user) => user.id === userId) ?? users.find((user) => user.id !== "system") ?? users[0];
+  const currentUser = users.find((user) => user.id === userId);
 
   return NextResponse.json({
     ok: true,

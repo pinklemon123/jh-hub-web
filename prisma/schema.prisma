@@ -108,8 +108,41 @@ model HubUser {
   posts    CommunityPost[]
   comments PostComment[]
   messages DirectMessage[]
+  account  UserAccount?
+  sessions UserSession[]
 
   @@map("hub_users")
+}
+
+model UserAccount {
+  id           String @id @default(uuid())
+  email        String @unique
+  passwordHash String @map("password_hash")
+  userId       String @unique @map("user_id")
+  user         HubUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("user_accounts")
+}
+
+model UserSession {
+  tokenHash String @id @map("token_hash")
+  userId    String @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  user      HubUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+model AuthAttempt {
+  key       String @id
+  count     Int @default(1)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("auth_attempts")
 }
 
 model CommunityPost {

@@ -1,3 +1,5 @@
+import { getCurrentUser } from "@/lib/user-auth";
+import { redirect, notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import ProfileEditForm from "@/components/profile-edit-form";
 import { ensureCommunitySeed, toUser } from "@/lib/community-db";
@@ -5,10 +7,13 @@ import { prisma } from "@/lib/prisma";
 
 export default async function EditProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const currentUser = await getCurrentUser();
+  if (!currentUser) redirect(`/login?next=${encodeURIComponent(`/profile/${id}/edit`)}`);
+  if (currentUser.id !== id) notFound();
   await ensureCommunitySeed();
   const userRow = await prisma.hubUser.findUnique({ where: { id } });
-  const fallback = await prisma.hubUser.findFirst({ where: { id: "u_001" } });
-  const user = toUser(userRow ?? fallback!);
+  if (!userRow) notFound();
+  const user = toUser(userRow);
 
   return (
     <AppShell>

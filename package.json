@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:auth": "node --env-file=.env tests/auth.integration.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

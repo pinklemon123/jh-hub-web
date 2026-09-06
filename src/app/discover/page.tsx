@@ -1,3 +1,4 @@
+import { getCurrentUser } from "@/lib/user-auth";
 import type { Route } from "next";
 import Link from "next/link";
 import { Compass, UserPlus, Users } from "lucide-react";
@@ -13,7 +14,8 @@ export const dynamic = "force-dynamic";
 
 export default async function DiscoverPage() {
   const data = await getDiscoverData();
-  const currentUser = data.users.find((user) => user.id === "u_001") ?? data.users.find((user) => user.id !== "system") ?? data.users[0];
+  const sessionUser = await getCurrentUser();
+  const currentUser = data.users.find((user) => user.id === sessionUser?.id);
   const teamMatches = currentUser ? recommendTeamsForUser(currentUser, data.teams, 3) : [];
   const teammateMatches = currentUser ? recommendTeammatesForTeams(currentUser, data.users, data.teams, 4) : [];
   const techPosts = currentUser ? recommendTechPostsForUser(currentUser, data.posts, 3) : [];

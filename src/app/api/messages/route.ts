@@ -1,3 +1,4 @@
+import { userAccess } from "@/lib/user-auth";
 import { NextResponse } from "next/server";
 import { ensureCommunitySeed, toMessage, toUser } from "@/lib/community-db";
 import { clearMessagesCache, getCachedMessagesPayload, setCachedMessagesPayload } from "@/lib/messages-cache";
@@ -5,7 +6,7 @@ import { moderateContent } from "@/lib/moderation";
 import { prisma } from "@/lib/prisma";
 import type { Conversation, Message, User } from "@/types";
 
-const CURRENT_USER_ID = "u_001";
+
 
 interface MessagesPayload {
   conversations: Conversation[];
@@ -14,9 +15,10 @@ interface MessagesPayload {
 }
 
 export async function GET(request: Request) {
+  const sessionUser = await userAccess();
+  if (sessionUser instanceof NextResponse) return sessionUser;
   await ensureCommunitySeed();
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get("userId") ?? CURRENT_USER_ID;
+  const userId = sessionUser.id;
 
   const cached = await getCachedMessagesPayload<MessagesPayload>(userId);
   if (cached) return NextResponse.json({ ok: true, ...cached, source: "redis" });
@@ -24,7 +26,8 @@ export async function GET(request: Request) {
   const [messageRows, userRows] = await Promise.all([
     prisma.directMessage.findMany({
       where: {
-        moderationStatus: "approved"
+        moderationStatus: "approved",
+        OR: [{ senderId: userId, receiverId: { not: null } }, { receiverId: userId }]
       },
       orderBy: { createdAt: "asc" }
     }),
@@ -34,7 +37,7 @@ export async function GET(request: Request) {
   const users = userRows.map(toUser);
   const items = messageRows.map(toMessage).filter((message) => {
     if (message.receiverId) return message.senderId === userId || message.receiverId === userId;
-    return message.conversationId !== "c_system";
+    return false;
   });
   const payload: MessagesPayload = {
     conversations: buildConversations(userId, items, users),
@@ -46,9 +49,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const sessionUser = await userAccess();
+  if (sessionUser instanceof NextResponse) return sessionUser;
   await ensureCommunitySeed();
   const body = await request.json();
-  const senderId = String(body.senderId ?? CURRENT_USER_ID);
+  const senderId = sessionUser.id;
   const receiverId = String(body.receiverId ?? "");
   const content = String(body.content ?? "").trim();
 
@@ -66,14 +71,8 @@ export async function POST(request: Request) {
   if (!sender || !receiver) return NextResponse.json({ ok: false, error: "user_not_found" }, { status: 404 });
 
   const conversationId = directConversationId(senderId, receiverId);
-  const allExisting = (await prisma.directMessage.findMany({
-    where: { moderationStatus: "approved" },
-    orderBy: { createdAt: "asc" }
-  })).map(toMessage);
-  const existing = allExisting.filter((message) => {
-    if (message.conversationId === conversationId) return true;
-    const peerId = inferPeerId(senderId, message, allExisting);
-    return peerId === receiverId;
+  const existing = await prisma.directMessage.findMany({
+    where: { conversationId, moderationStatus: { in: ["approved", "pending"] } }
   });
   const senderHasSent = existing.some((message) => message.senderId === senderId);
   const receiverHasReplied = existing.some((message) => message.senderId === receiverId);

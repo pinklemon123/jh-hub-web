@@ -13,11 +13,14 @@ export default function ProfileEditForm({ initialUser }: { initialUser: User }) 
   const [bio, setBio] = useState(initialUser.bio);
   const [contact, setContact] = useState(initialUser.contact);
   const [skills, setSkills] = useState(initialUser.skills.join(", "));
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function save() {
     setSaving(true);
-    await fetch(`/api/users/${initialUser.id}`, {
+    setError("");
+    try {
+    const response = await fetch(`/api/users/${initialUser.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -28,8 +31,11 @@ export default function ProfileEditForm({ initialUser }: { initialUser: User }) 
         skills: splitList(skills)
       })
     });
-    setSaving(false);
+    if (!response.ok) { const data = await response.json(); setError(data.message ?? "保存失败。"); return; }
     router.push(`/profile/${initialUser.id}`);
+    router.refresh();
+    } catch { setError("网络连接失败，请重试。"); }
+    finally { setSaving(false); }
   }
 
   return (
@@ -62,6 +68,7 @@ export default function ProfileEditForm({ initialUser }: { initialUser: User }) 
           <label className="block text-sm font-semibold text-neutral-600">技能，逗号分隔</label>
           <input value={skills} onChange={(event) => setSkills(event.target.value)} className="mt-1 w-full rounded border px-3 py-2" />
         </div>
+        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         <div className="flex gap-2">
           <Button onClick={save} disabled={saving}>
             {saving ? "保存中" : "保存"}

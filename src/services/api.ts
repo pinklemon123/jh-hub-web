@@ -34,7 +34,7 @@ export const api = {
   async getTeams() {
     return getJson(endpoints.teams, teams);
   },
-  async getRecommendations(userId = "u_001") {
+  async getRecommendations(userId = "") {
     return getJson(`${endpoints.recommendations}?userId=${encodeURIComponent(userId)}`, {
       strategy: "rule_based_skill_matching",
       teamMatches: [],
@@ -42,7 +42,7 @@ export const api = {
       techPosts: []
     });
   },
-  async getDiscover(userId = "u_001") {
+  async getDiscover(userId = "") {
     return getJson(`${endpoints.discover}?userId=${encodeURIComponent(userId)}`, {
       officialFeed: [],
       recommendations: {

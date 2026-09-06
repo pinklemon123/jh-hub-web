@@ -16,6 +16,7 @@ pnpm-debug.log*
 
 *.tsbuildinfo
 .DS_Store
+.local/
 
 # Runtime uploaded files. Keep checked-in lightweight demo SVGs.
 public/uploads/posts/*

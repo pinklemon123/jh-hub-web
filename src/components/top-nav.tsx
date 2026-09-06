@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,12 +16,22 @@ const navItems: ReadonlyArray<{ href: Route; label: string; icon: typeof Home }>
   { href: "/teams", label: "组队", icon: Users },
   { href: "/discover", label: "发现", icon: Compass },
   { href: "/messages", label: "消息", icon: MessageCircle },
-  { href: "/profile/u_001" as Route, label: "我的", icon: UserRound }
+  { href: "/login" as Route, label: "我的", icon: UserRound }
 ];
 
 export function TopNav() {
   const pathname = usePathname();
   const unread = useSessionStore((state) => state.unread);
+  const user = useSessionStore((state) => state.user);
+  const loading = useSessionStore((state) => state.loading);
+  const [logoutError, setLogoutError] = useState("");
+  async function logout() {
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) throw new Error();
+      window.location.assign("/login");
+    } catch { setLogoutError("退出失败，请重试。"); }
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
@@ -31,7 +42,8 @@ export function TopNav() {
         </Link>
 
         <nav className="ml-1 hidden items-center gap-1 md:flex">
-          {navItems.map((item) => {
+          {navItems.map((original) => {
+            const item = original.label === "我的" ? { ...original, href: (user ? `/profile/${user.id}` : "/login") as Route } : original;
             const Icon = item.icon;
             const active = pathname === item.href;
             return (
@@ -58,7 +70,14 @@ export function TopNav() {
           搜索帖子、队友、项目
         </div>
 
-        <Link href="/posts/new">
+        <div className="ml-auto flex items-center gap-2 text-sm">
+          {loading ? <span role="status">加载中…</span> : user ? <>
+            <Link href={`/profile/${user.id}`} className="max-w-24 truncate font-semibold">{user.name}</Link>
+            <button onClick={logout} className="text-neutral-500">退出</button>
+          </> : <Link href="/login" className="font-semibold text-brand-700">登录 / 注册</Link>}
+          {logoutError && <span role="alert">{logoutError}</span>}
+        </div>
+        <Link href={user ? "/posts/new" : "/login?next=%2Fposts%2Fnew"}>
           <Button className="h-9 px-3">
             <Plus size={16} />
             发帖

@@ -3,7 +3,7 @@ import { redis } from "@/lib/redis";
 const MESSAGE_CACHE_TTL_SECONDS = 15;
 
 export function messagesCacheKey(userId: string) {
-  return `messages:${userId}`;
+  return `messages:v2:${userId}`;
 }
 
 export async function getCachedMessagesPayload<T>(userId: string) {

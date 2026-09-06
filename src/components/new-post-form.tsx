@@ -57,7 +57,7 @@ export function NewPostForm() {
   return (
     <Card className="p-5">
       <h1 className="text-2xl font-black">发布内容</h1>
-      <p className="mt-2 text-sm text-neutral-500">发帖会写入本机 PostgreSQL，图片会保存到 public/uploads/posts。</p>
+      <p className="mt-2 text-sm text-neutral-500">分享你的项目、问题或协作需求，提交后由管理员审核。</p>
       <div className="mt-5 space-y-4">
         <input
           value={title}

@@ -1,12 +1,12 @@
+import { getCurrentUser } from "@/lib/user-auth";
 import { NextResponse } from "next/server";
 import { getDiscoverData } from "@/lib/discover-data";
 import { recommendTeamsForUser, recommendTeammatesForTeams, recommendTechPostsForUser } from "@/lib/recommendations";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get("userId") ?? "u_001";
+  const userId = (await getCurrentUser())?.id;
   const data = await getDiscoverData();
-  const currentUser = data.users.find((user) => user.id === userId) ?? data.users.find((user) => user.id !== "system") ?? data.users[0];
+  const currentUser = data.users.find((user) => user.id === userId);
 
   return NextResponse.json({
     ok: true,

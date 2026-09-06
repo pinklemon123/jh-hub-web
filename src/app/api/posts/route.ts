@@ -1,3 +1,4 @@
+import { userAccess } from "@/lib/user-auth";
 import { NextResponse } from "next/server";
 import { posts as mockPosts } from "@/data/mock";
 import { ensureCommunitySeed, toPost } from "@/lib/community-db";
@@ -30,8 +31,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const sessionUser = await userAccess();
+  if (sessionUser instanceof NextResponse) return sessionUser;
   const body = await request.json();
-  const authorId = String(body.authorId ?? "u_001");
+  const authorId = sessionUser.id;
   const moderation = moderateContent(`${String(body.title ?? "")} ${String(body.summary ?? body.content ?? "")} ${String(body.content ?? "")}`);
   try {
     await ensureCommunitySeed();

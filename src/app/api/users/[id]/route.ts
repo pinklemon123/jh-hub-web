@@ -1,3 +1,4 @@
+import { userAccess } from "@/lib/user-auth";
 import { NextResponse } from "next/server";
 import { ensureCommunitySeed, toUser } from "@/lib/community-db";
 import { prisma } from "@/lib/prisma";
@@ -11,8 +12,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const sessionUser = await userAccess();
+  if (sessionUser instanceof NextResponse) return sessionUser;
   await ensureCommunitySeed();
   const { id } = await params;
+  if (id !== sessionUser.id) return NextResponse.json({ ok: false, message: "只能编辑自己的资料。" }, { status: 403 });
   const body = await request.json();
   const user = await prisma.hubUser.update({
     where: { id },

@@ -2,24 +2,11 @@
 
 import { MessageCircle } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import type { User } from "@/types";
 import { Avatar, Card, Tag } from "./ui";
 
 export function ProfilePanel({ user, showEdit }: { user: User; showEdit?: boolean }) {
-  const [displayUser, setDisplayUser] = useState<User>(user);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("editedUsers");
-      if (!raw) return;
-      const map = JSON.parse(raw || "{}");
-      const edited = map[user.id];
-      if (edited) setDisplayUser({ ...user, ...edited });
-    } catch {
-      // Local edits are optional.
-    }
-  }, [user]);
+  const displayUser = user;
 
   return (
     <Card className="overflow-hidden">

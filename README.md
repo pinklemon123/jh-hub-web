@@ -57,6 +57,16 @@ requiredSkills - currentSkills = missingSkills
 
 ## 本地启动
 
+### 用户注册与登录
+
+- 注册：`/register`，填写昵称、邮箱及 8–128 位密码，注册成功后自动登录。
+- 登录：`/login`，支持返回登录前访问的站内页面；导航栏显示当前用户并提供退出入口。
+- 账户保存在 PostgreSQL，密码使用随机盐的 scrypt 哈希；会话使用 HttpOnly Cookie，有效期为 7 天，退出后服务端立即撤销会话。
+- 发帖、评论、组队、举报和私信使用服务端登录身份；用户只能修改自己的资料、读取自己的私信和定向通知。后台管理员登录仍使用独立入口。
+- 当前邮箱仅作为登录名，没有接入邮件验证、密码找回或校园 CAS 认证。演示用户没有预设登录密码，需要自行注册新账户。
+- 更新后执行 `npx prisma generate` 和 `npx prisma db push`，创建 `user_accounts`、`user_sessions`、`auth_attempts` 三张表。
+- 本地网站运行后，执行 `npm run test:auth` 验证注册、登录、会话撤销与权限隔离；测试会创建并清理自己的测试账户。
+
 安装依赖：
 
 ```bash

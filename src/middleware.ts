@@ -4,6 +4,15 @@ const encoder = new TextEncoder();
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) {
+    const origin = request.headers.get("origin");
+    // Next's internal URL can use localhost even when the browser uses 127.0.0.1.
+    const requestOrigin = `${request.nextUrl.protocol}//${request.headers.get("host") ?? request.nextUrl.host}`;
+    if ((origin && origin !== requestOrigin) || request.headers.get("sec-fetch-site") === "cross-site") {
+      return NextResponse.json({ ok: false, message: "不允许跨站提交。" }, { status: 403 });
+    }
+  }
+  if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) return NextResponse.next();
   if (pathname === "/admin/login" || pathname === "/api/admin/login" || pathname === "/api/admin/logout") {
     return NextResponse.next();
   }
@@ -48,5 +57,5 @@ function safeEqual(a: string, b: string) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"]
+  matcher: ["/admin/:path*", "/api/:path*"]
 };
